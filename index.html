@@ -506,6 +506,7 @@ onAuthStateChanged(auth, async (user)=>{
   }
 
   if(seedMathClass6IfNeeded()) await save();
+  ensureParentAccess(); await save();
   currentUser=db.users.find(u=>u.email===user.email);
   if(!currentUser){
     alert("To konto nie jest wpisane w dzienniku.");
@@ -520,7 +521,7 @@ onAuthStateChanged(auth, async (user)=>{
   htmlSet('hello',roleNow==="teacher"?"Witaj, <b>nauczycielu</b>.":(roleNow==="parent"?"Witaj, <b>"+currentUser.name+"</b>. Panel rodzica ucznia: <b>"+selectedStudent+"</b>.":"Witaj, <b>"+currentUser.name+"</b>."));
 
   if(unsub)unsub();
-  unsub=onSnapshot(dataRef,(s)=>{ if(s.exists()){ db={...structuredClone(defaultData), ...s.data()}; db.users=defaultData.users; db.students=defaultData.students; renderAll(); } });
+  unsub=onSnapshot(dataRef,(s)=>{ if(s.exists()){ db={...structuredClone(defaultData), ...s.data()}; ensureParentAccess(); renderAll(); } });
   }catch(err){ console.error(err); document.body.innerHTML='<div style="padding:30px;font-family:Arial"><h1>Błąd po logowaniu</h1><pre>'+String(err)+'</pre></div>'; }
 });
 
@@ -760,11 +761,11 @@ function avg(st,sem){
 function finalKey(cls,subject,st,type){return cls+"|"+subject+"|"+st+"|"+type}
 function finalCell(cls,subject,st,type){
   let v=db.finals[finalKey(cls,subject,st,type)]||"";
-  if(roleNow==="student") return `<b>${v||"—"}</b>`;
+  if(roleNow!=="teacher") return `<b>${v||"—"}</b>`;
   let ex=String(v).toLowerCase().includes("zwoln");
   return `<input class="finalInput ${ex?'exempt':''}" value="${v}" placeholder="np. 5 / zwolniony" onchange="setFinal('${cls}','${subject}','${st}','${type}',this.value)">`;
 }
-window.setFinal=async function(cls,subject,st,type,val){db.finals[finalKey(cls,subject,st,type)]=val;await save()}
+window.setFinal=async function(cls,subject,st,type,val){if(roleNow!=="teacher")return;db.finals[finalKey(cls,subject,st,type)]=val;await save()}
 
 
 function gradeValueLabel(g){
@@ -872,6 +873,7 @@ window.openGrade=function(st,code){
   gradeModal.style.display="flex";
 }
 window.saveGrade=async function(){
+  if(roleNow!=="teacher")return;
   db.grades["6F|"+currentSubject()+"|"+editStudent+"|"+editCode]={grade:gmGrade.value.trim(),oldGrade:gmOldGrade.value.trim(),desc:gmDesc.value,date:now(),improved:!!gmOldGrade.value.trim()};
   await save();renderAll();gradeModal.style.display="none";
 }
@@ -997,16 +999,13 @@ function currentIdentity(){
   return {email:currentUser.email||"",name:currentUser.name||"",role:currentUser.role||""};
 }
 function getRecipients(){
-  let rec=[];
   const me=currentIdentity();
-  if(me.role==="parent"){
+  let rec=[];
+  if(me.role==="parent" || me.role==="student"){
     (db.users||[]).filter(u=>u.role==="teacher").forEach(u=>rec.push({email:u.email,name:u.name||"Nauczyciel",role:"teacher"}));
-  }else if(me.role==="student"){
-    (db.users||[]).filter(u=>u.role==="teacher").forEach(u=>rec.push({email:u.email,name:u.name||"Nauczyciel",role:"teacher"}));
-  }else{
-    // teacher can send to students and parents
+  }else if(me.role==="teacher"){
     (db.students||[]).forEach(s=>{
-      rec.push({email:s.email,name:s.name,role:"student"});
+      if(s.email) rec.push({email:s.email,name:s.name,role:"student"});
       if(s.parentEmail) rec.push({email:s.parentEmail,name:"Rodzic: "+s.name,role:"parent"});
     });
   }
@@ -1031,13 +1030,15 @@ window.renderMailbox=function(){
   try{
     const panel=document.getElementById("mailBoxPanel");
     if(!panel)return;
-    if(!db.messages)db.messages=[];
+    db.messages=db.messages||[];
     if(mailMode==="compose"){
       const rec=getRecipients();
+      let options=rec.map(r=>`<option value="${r.email}">${r.name} — ${r.email}</option>`).join("");
+      if(!options) options="<option value=''>Brak odbiorców</option>";
       panel.innerHTML=`
         <h3>Nowa wiadomość</h3>
         <label>Odbiorca</label>
-        <select id="msgTo">${rec.map(r=>`<option value="${r.email}">${r.name} — ${r.email}</option>`).join("")}</select>
+        <select id="msgTo">${options}</select>
         <label>Temat</label>
         <input id="msgSubject" placeholder="Temat wiadomości" style="width:100%;margin:6px 0">
         <label>Treść</label>
@@ -1046,7 +1047,7 @@ window.renderMailbox=function(){
       `;
       return;
     }
-    let list=(db.messages||[]).filter(canSeeMessage).filter(messageMatchesMode).slice().sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));
+    let list=db.messages.filter(canSeeMessage).filter(messageMatchesMode).slice().sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));
     let title=mailMode==="inbox"?"Odebrane":mailMode==="sent"?"Wysłane":"Wszystkie wiadomości";
     let out=`<h3>${title}</h3>`;
     if(list.length===0) out+="<p>Brak wiadomości.</p>";
@@ -1057,7 +1058,7 @@ window.renderMailbox=function(){
         const unread=(m.toEmail===currentIdentity().email && !m.read);
         out+=`<div class="mailItem ${unread?'unread':''}" onclick="openMessage(${realIndex})">
           <div><b>${m.subject||"(bez tematu)"}</b></div>
-          <div class="mailMeta">Od: ${m.fromName||m.fromEmail} &lt;${m.fromEmail||""}&gt; → Do: ${m.toEmail||""} | ${m.createdAt||""}</div>
+          <div class="mailMeta">Od: ${m.fromName||m.fromEmail} &lt;${m.fromEmail||""}&gt; → Do: ${m.toName||m.toEmail||""} &lt;${m.toEmail||""}&gt; | ${m.createdAt||""}</div>
         </div>`;
       });
       out+=`</div>`;
@@ -1072,9 +1073,11 @@ window.renderMailbox=function(){
 window.sendInternalMessage=async function(){
   const me=currentIdentity();
   const to=document.getElementById("msgTo")?.value || "";
+  const subj=document.getElementById("msgSubject")?.value || "";
+  const body=document.getElementById("msgBody")?.value || "";
   const rec=getRecipients().find(r=>r.email===to);
   if(!to)return alert("Wybierz odbiorcę.");
-  const subj=document.getElementById("msgSubject")?.value || ""; const body=document.getElementById("msgBody")?.value || ""; if(!body.trim() && !subj.trim())return alert("Wpisz temat albo treść.");
+  if(!body.trim() && !subj.trim())return alert("Wpisz temat albo treść.");
   db.messages=db.messages||[];
   db.messages.push({
     fromEmail:me.email,
@@ -1082,6 +1085,7 @@ window.sendInternalMessage=async function(){
     fromRole:me.role,
     toEmail:to,
     toName:rec?.name||to,
+    toRole:rec?.role||"",
     subject:subj.trim(),
     body:body,
     createdAt:now(),
@@ -1094,27 +1098,31 @@ window.sendInternalMessage=async function(){
 window.openMessage=async function(i){
   let m=db.messages[i]; if(!m)return;
   const me=currentIdentity();
+  if(!canSeeMessage(m))return alert("Brak dostępu do wiadomości.");
   if(m.toEmail===me.email && !m.read){m.read=true; await save();}
-  document.getElementById("mailBoxPanel").innerHTML=`
+  const panel=document.getElementById("mailBoxPanel");
+  panel.innerHTML=`
     <button onclick="renderMailbox()">← Wróć</button>
     <h3>${m.subject||"(bez tematu)"}</h3>
-    <div class="mailMeta">Od: ${m.fromName} &lt;${m.fromEmail}&gt;<br>Do: ${m.toName||m.toEmail} &lt;${m.toEmail}&gt;<br>Data: ${m.createdAt||""}</div>
-    <div class="mailBodyView">${(m.body||"").replaceAll("<","&lt;")}</div>
+    <div class="mailMeta">Od: ${m.fromName||m.fromEmail} &lt;${m.fromEmail||""}&gt;<br>Do: ${m.toName||m.toEmail} &lt;${m.toEmail||""}&gt;<br>Data: ${m.createdAt||""}</div>
+    <div class="mailBodyView">${String(m.body||"").replaceAll("<","&lt;")}</div>
     <button class="primary" onclick="replyMessage(${i})">Odpowiedz</button>
-    <button class="danger teacherOnly" onclick="deleteMessage(${i})">Usuń</button>
+    ${roleNow==="teacher"?`<button class="danger" onclick="deleteMessage(${i})">Usuń</button>`:""}
   `;
-  document.querySelectorAll(".teacherOnly").forEach(e=>e.style.display=roleNow==="teacher"?"":"none");
 }
 window.replyMessage=function(i){
   let m=db.messages[i]; if(!m)return;
   mailMode="compose";
   renderMailbox();
   setTimeout(()=>{
-    document.getElementById("msgTo").value=m.fromEmail;
-    document.getElementById("msgSubject").value=(m.subject||"").startsWith("Re:") ? m.subject : "Re: "+(m.subject||"");
+    const to=document.getElementById("msgTo");
+    const subject=document.getElementById("msgSubject");
+    if(to)to.value=m.fromEmail;
+    if(subject)subject.value=(m.subject||"").startsWith("Re:") ? m.subject : "Re: "+(m.subject||"");
   },0);
 }
 window.deleteMessage=async function(i){
+  if(roleNow!=="teacher")return alert("Tylko nauczyciel może usuwać wiadomości.");
   if(!confirm("Usunąć wiadomość?"))return;
   db.messages.splice(i,1);
   await save();
