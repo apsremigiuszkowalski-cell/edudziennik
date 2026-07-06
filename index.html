@@ -68,21 +68,14 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
 .gradeSheet .weightRow th{font-weight:bold;color:#000;background:#fff}
 .gradeSheet .codeRow th{font-weight:bold;color:#000;background:#fff}
 .gradeCell{position:relative;min-width:38px;background:white}
-.gradeCell.hasComment:after{
-  content:"";
-  position:absolute;
-  top:0;right:0;
-  width:0;height:0;
-  border-top:9px solid #000;
-  border-left:9px solid transparent;
-}
+
 .gradeText{font-weight:normal}
 .g-red{color:#ff0000}
 .g-blue{color:#1c5cff}
 .g-green{color:#83b36a}
 .g-purple{color:#8a00ff}
 .g-black{color:#000}
-.bg-yellow{background:#ffe599!important}
+.bg-yellow{}
 
 .avgLink{color:#0b4fa3;text-decoration:underline;cursor:pointer;font-weight:bold}
 .calcBox{font-family:Tahoma,Arial,sans-serif}
@@ -90,7 +83,7 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
 .parentEmail{font-size:11px;color:#555}
 .studentHiddenPanel{display:none!important}
 
-.improvedGrade{background:#fff2a8!important}
+.improvedGrade{}
 .improvedGrade .gradeText{font-weight:bold}
 .oldGradeMark{font-size:10px;color:#555;display:block}
 
@@ -760,16 +753,41 @@ window.deleteColumn=async function(index){
   db.columns.splice(index,1); await save(); renderAll();
 }
 function gradeNum(g){
-  if(!g)return null; g=String(g).trim().toLowerCase().replace(",",".");
-  if(["nb","np","zw","zwolniony"].includes(g))return null;
-  const scale={"6":6,"-6":5.67,"5+":5.33,"+5":5.33,"5":5,"-5":4.67,"4+":4.33,"+4":4.33,"4":4,"-4":3.67,"3+":3.33,"+3":3.33,"3":3,"-3":2.67,"2+":2.33,"+2":2.33,"2":2,"1":1};
+  if(!g)return null;
+  g=String(g).trim().toLowerCase().replace(",",".");
+  if(["", "nb", "np", "zw", "zwolniony", "+", "-"].includes(g))return null;
+  const scale={
+    "6":6,
+    "-6":5.67,
+    "5+":5.33,
+    "+5":5.33,
+    "5":5,
+    "-5":4.67,
+    "4+":4.33,
+    "+4":4.33,
+    "4":4,
+    "-4":3.67,
+    "3+":3.33,
+    "+3":3.33,
+    "3":3,
+    "-3":2.67,
+    "2+":2.33,
+    "+2":2.33,
+    "2":2,
+    "1":1
+  };
   return scale[g] ?? null;
 }
 function avg(st,sem){
   let sum=0,w=0, subject=currentSubject();
   db.columns.filter(c=>c.subject===subject&&c.semester===String(sem)).forEach(c=>{
-    let x=db.grades["6F|"+subject+"|"+st+"|"+c.code]; if(!x)return;
-    let n=gradeNum(x.grade); if(n===null)return; sum+=n*c.weight; w+=c.weight;
+    let x=db.grades["6F|"+subject+"|"+st+"|"+c.code];
+    if(!x || !x.grade)return;
+    let n=gradeNum(x.grade);
+    if(n===null)return;
+    let weight=Number(c.weight||1);
+    sum+=n*weight;
+    w+=weight;
   });
   return w?(sum/w).toFixed(2):"—";
 }
@@ -798,7 +816,7 @@ function avgDetails(st, sem){
     let w=Number(c.weight||1);
     let pts=n*w;
     sum+=pts; wsum+=w;
-    rows.push({code:c.code, grade, value:n, weight:w, points:pts});
+    rows.push({code:c.code, grade, value:n, weight:w, points:pts, oldGrade:x.oldGrade||""});
   });
   return {rows,sum,wsum,avg:wsum?(sum/wsum):null};
 }
@@ -828,9 +846,6 @@ function gradeColorClass(grade, code){
   return "g-black";
 }
 function gradeBgClass(code, grade){
-  if(["A1","A2","A3","A4","A6"].includes(code)) return "bg-yellow";
-  if(["S1","K1","K2","S2"].includes(code)) return "bg-yellow";
-  if(String(grade||"").trim()==="+") return "bg-yellow";
   return "";
 }
 function renderGrades(){
@@ -856,8 +871,8 @@ function renderGrades(){
       let grade=x.grade||"";
       let cc=gradeColorClass(grade,c.code);
       let bg=gradeBgClass(c.code,grade);
-      let comment=(x.desc||c.desc||x.date||x.oldGrade) ? "hasComment" : "";
-      let improved=x.oldGrade ? "improvedGrade" : "";
+      let comment="";
+      let improved="";
       let old=x.oldGrade ? `<span class="oldGradeMark">popr. z ${x.oldGrade}</span>` : "";
       html+=`<td class="gradeCell ${bg} ${comment} ${improved}" onclick="openGrade('${s.name}','${c.code}')" title="${x.desc||c.desc||""}
 ${x.oldGrade?("Poprawione z: "+x.oldGrade):""}
