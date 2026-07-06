@@ -910,6 +910,54 @@ function gradeColorClass(grade, code){
 }
 function gradeBgClass(code, grade){ return ""; }
 
+
+function renderGrades(){
+  const table = document.getElementById("gradesTable");
+  if(!table)return;
+
+  if(currentCls()!=="6F"){
+    table.outerHTML="<table id='gradesTable'><tr><td>Oceny bieżące są tylko w folderze 6F.</td></tr></table>";
+    return;
+  }
+
+  const subject = currentSubject();
+  const cols = (db.columns||[]).filter(c=>c.subject===subject);
+  const studs = (roleNow==="student"||roleNow==="parent")
+    ? (db.students||[]).filter(s=>s.name===selectedStudent)
+    : (db.students||[]);
+
+  let html = "<table id='gradesTable' class='gradeSheet'>";
+  html += "<tr class='weightRow'><th class='nr'></th><th class='studentName'></th>";
+  cols.forEach(c=>html += `<th>${Number(c.weight||1).toFixed(1)}</th>`);
+  html += "<th>Śr. I</th><th>Śródr.</th><th>Śr. II</th><th>Roczna</th></tr>";
+
+  html += "<tr class='codeRow'><th class='nr'>Nr</th><th>Uczeń</th>";
+  cols.forEach(c=>html += `<th title="${c.desc||""}">${c.code}</th>`);
+  html += "<th></th><th></th><th></th><th></th></tr>";
+
+  studs.forEach(s=>{
+    html += `<tr><td class="nr">${s.no||""}</td><td class="studentName">${s.name}</td>`;
+
+    cols.forEach(c=>{
+      const key = "6F|" + subject + "|" + s.name + "|" + c.code;
+      const x = (db.grades||{})[key] || {};
+      const grade = x.grade || "";
+      const cc = gradeColorClass(grade, c.code);
+      html += `<td class="gradeCell" onclick="openGrade('${s.name}','${c.code}')" title="${x.desc||c.desc||""}\n${x.date||""}">
+        <span class="gradeText ${cc}">${grade}</span>
+      </td>`;
+    });
+
+    html += `<td><span class="avgLink" onclick="showAvgDetails('${s.name}',1)">${avg(s.name,1)}</span></td>
+      <td>${finalCell("6F",subject,s.name,"srodroczna")}</td>
+      <td><span class="avgLink" onclick="showAvgDetails('${s.name}',2)">${avg(s.name,2)}</span></td>
+      <td>${finalCell("6F",subject,s.name,"roczna")}</td></tr>`;
+  });
+
+  html += "</table>";
+  table.outerHTML = html;
+}
+
 function renderFinals(){
   let cls=currentCls();
   let studs=(roleNow==="student"||roleNow==="parent")?db.students.filter(s=>s.name===selectedStudent):db.students;
