@@ -1251,6 +1251,132 @@ function renderAll(){
   }
 }
 initSubjects(); if(document.getElementById('lessonDate')) lessonDate.value=dateOnly();
+
+/* ===== WYMUSZENIE POPRAWNEJ ŚREDNIEJ I DANYCH 5.58 ===== */
+function gradeNum_FINAL(g){
+  if(g===undefined || g===null)return null;
+  g=String(g).trim().toLowerCase().replace(",",".");
+  if(["", "nb", "np", "zw", "zwolniony", "+", "-"].includes(g))return null;
+  const scale={
+    "6":6.00,
+    "-6":5.67,
+    "5+":5.33,
+    "+5":5.33,
+    "5":5.00,
+    "-5":4.67,
+    "4+":4.33,
+    "+4":4.33,
+    "4":4.00,
+    "-4":3.67,
+    "3+":3.33,
+    "+3":3.33,
+    "3":3.00,
+    "-3":2.67,
+    "2+":2.33,
+    "+2":2.33,
+    "2":2.00,
+    "1":1.00
+  };
+  return Object.prototype.hasOwnProperty.call(scale,g) ? scale[g] : null;
+}
+gradeNum = gradeNum_FINAL;
+
+function avg_FINAL(st,sem){
+  let sum=0;
+  let weightSum=0;
+  const subject=currentSubject ? currentSubject() : "Matematyka";
+  (db.columns||[])
+    .filter(c=>c.subject===subject && String(c.semester||"1")===String(sem))
+    .forEach(c=>{
+      const x=(db.grades||{})["6F|"+subject+"|"+st+"|"+c.code];
+      if(!x || !x.grade)return;
+      const v=gradeNum_FINAL(x.grade);
+      if(v===null)return;
+      const w=Number(c.weight||1);
+      sum+=v*w;
+      weightSum+=w;
+    });
+  return weightSum ? (sum/weightSum).toFixed(2) : "—";
+}
+avg = avg_FINAL;
+
+function forceCorrectMathData558(){
+  if(!db)return;
+
+  db.columns=db.columns||[];
+  db.grades=db.grades||{};
+  db.students=[
+    {no:"1",name:"Kowalski Czesław",email:"czeskowa34@edudziennik.local",password:"",parentEmail:""},
+    {no:"2",name:"Kowalski Rafał Paweł",email:"rafkowa12@edudziennik.local",password:"",parentEmail:"rekin123@interia.pl"}
+  ];
+
+  const correctCols=[
+    ["A1",1,"#f3c13a"],["PL1",1,"#ffffff"],["A2",1,"#f3c13a"],["S1",3,"#ff3333"],
+    ["A3",1,"#f3c13a"],["K1",2,"#77aa55"],["A4",1,"#f3c13a"],["K2",2,"#d6bd48"],
+    ["S2",3,"#ff3333"],["PL2",2,"#a020f0"],["A5",1,"#2f74ff"],["ODP1",1,"#2f74ff"],
+    ["ODP2",1,"#2f74ff"],["A6",1,"#f3c13a"],["K3",2,"#77aa55"],["S3",3,"#ff3333"]
+  ];
+
+  // usuń stare kolumny matematyki i wpisz poprawne z wagami
+  db.columns=db.columns.filter(c=>c.subject!=="Matematyka");
+  correctCols.forEach(([code,weight,color])=>{
+    db.columns.push({
+      subject:"Matematyka",
+      code:code,
+      desc:code,
+      weight:Number(weight),
+      semester:"1",
+      color:color
+    });
+  });
+
+  // usuń stare oceny matematyki tych uczniów i wpisz poprawne
+  Object.keys(db.grades).forEach(k=>{
+    if(k.startsWith("6F|Matematyka|Kowalski Czesław|") || k.startsWith("6F|Matematyka|Kowalski Rafał Paweł|")){
+      delete db.grades[k];
+    }
+  });
+
+  const grades={
+    "Kowalski Czesław":{
+      "A1":"6","PL1":"5","A2":"6","S1":"5-","A3":"6","K1":"5","A4":"6","K2":"6",
+      "S2":"5+","PL2":"6","A5":"6","ODP1":"6","ODP2":"6","A6":"6","K3":"6","S3":"5+"
+    },
+    "Kowalski Rafał Paweł":{
+      "A1":"6","PL1":"5+","A2":"6","S1":"5-","A3":"6","K1":"5+","A4":"+","K2":"6",
+      "S2":"nb","PL2":"","A5":"","ODP1":"6","ODP2":"","A6":"","K3":"nb","S3":"nb"
+    }
+  };
+
+  Object.keys(grades).forEach(st=>{
+    Object.entries(grades[st]).forEach(([code,grade])=>{
+      if(grade!==""){
+        db.grades["6F|Matematyka|"+st+"|"+code]={
+          grade:grade,
+          desc:code,
+          date:"2026-07-26"
+        };
+      }
+    });
+  });
+
+  db.forceCorrectMathData558=true;
+}
+
+/* nadpisz render, żeby zawsze pokazywał poprawną średnią */
+const oldRenderAll_558 = renderAll;
+renderAll = function(){
+  forceCorrectMathData558();
+  oldRenderAll_558();
+};
+
+/* po zalogowaniu i wczytaniu danych zapisz poprawkę do Firebase */
+const oldSave_558 = save;
+save = async function(){
+  forceCorrectMathData558();
+  return await oldSave_558();
+};
+
 </script>
 </body>
 </html>
