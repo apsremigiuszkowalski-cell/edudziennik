@@ -59,6 +59,30 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
 .certGrid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:14px 0}
 .certLine{border-bottom:1px dotted #333;min-height:24px;padding:4px}
 .certSubjects td,.certSubjects th{font-family:Georgia,serif}
+
+.gradeSheet{border-collapse:collapse;min-width:1100px;font-size:12px;background:white}
+.gradeSheet th,.gradeSheet td{border:1px solid #d7d7d7;padding:4px;text-align:center;height:24px}
+.gradeSheet th{background:#fff;font-weight:normal}
+.gradeSheet .nr{width:38px}
+.gradeSheet .studentName{width:180px;text-align:left;font-weight:normal}
+.gradeSheet .weightRow th{font-weight:bold;color:#000;background:#fff}
+.gradeSheet .codeRow th{font-weight:bold;color:#000;background:#fff}
+.gradeCell{position:relative;min-width:38px;background:white}
+.gradeCell.hasComment:after{
+  content:"";
+  position:absolute;
+  top:0;right:0;
+  width:0;height:0;
+  border-top:9px solid #000;
+  border-left:9px solid transparent;
+}
+.gradeText{font-weight:normal}
+.g-red{color:#ff0000}
+.g-blue{color:#1c5cff}
+.g-green{color:#83b36a}
+.g-purple{color:#8a00ff}
+.g-black{color:#000}
+.bg-yellow{background:#ffe599!important}
 </style>
 </head>
 <body>
@@ -251,18 +275,18 @@ const defaultData={
   classes:["4F","5F","6F"],
   users:[
     {email:"xremskyyt@gmail.com",role:"teacher",name:"Nauczyciel matematyki"},
-    {email:"czeskowa34@edudziennik.local",role:"student",name:"Dominik Marcin"},
-    {email:"rafkowa12@edudziennik.local",role:"student",name:"Rebeka Gabriela"}
+    {email:"czeskowa34@edudziennik.local",role:"student",name:"Kowalski Czesław"},
+    {email:"rafkowa12@edudziennik.local",role:"student",name:"Kowalski Rafał Paweł"}
   ],
   students:[
-    {no:"1",name:"Dominik Marcin",email:"czeskowa34@edudziennik.local",password:"1234"},
-    {no:"2",name:"Rebeka Gabriela",email:"rafkowa12@edudziennik.local",password:"1234"}
+    {no:"1",name:"Kowalski Czesław",email:"czeskowa34@edudziennik.local",password:""},
+    {no:"2",name:"Kowalski Rafał Paweł",email:"rafkowa12@edudziennik.local",password:""}
   ],
   columns:[],grades:{},finals:{},attendance:[],lessons:[],notes:[]
 };
 
 let db=structuredClone(defaultData);
-let currentUser=null, roleNow="teacher", selectedStudent="Dominik Marcin", editStudent="", editCode="", unsub=null;
+let currentUser=null, roleNow="teacher", selectedStudent="Kowalski Czesław", editStudent="", editCode="", unsub=null;
 
 const $ = (id) => document.getElementById(id);
 function showEl(id, display="block"){ const el=$(id); if(el) el.style.display=display; }
@@ -308,6 +332,84 @@ window.resetPassword = async function(){
 
 window.logout = async function(){ await signOut(auth); location.reload(); }
 
+
+const seededTopics=[
+  ["2026-05-26","Rachunki pamięciowe na liczbach naturalnych."],
+  ["2026-05-26","Rachunki pamięciowe na ułamkach dziesiętnych."],
+  ["2026-05-26","Działania pisemne na ułamkach dziesiętnych."],
+  ["2026-06-02","Działania na ułamkach zwykłych."],
+  ["2026-06-02","Sprawdzian - Liczby naturalne i ułamki."],
+  ["2026-06-21","Kalendarz i czas."],
+  ["2026-06-21","Jednostki długości i jednostki masy."],
+  ["2026-07-01","Skala na planach i mapach."],
+  ["2026-07-03","Zaokrąglenie liczb."],
+  ["2026-07-03","Kalkulator."],
+  ["2026-07-03","Odczytywanie informacji."],
+  ["2026-07-03","Odczytywanie danych z wykresów."],
+  ["2026-07-03","Praca klasowa - Liczby na co dzień."],
+  ["2026-07-05","Proste i odcinki."],
+  ["2026-07-05","Okręgi i koła."],
+  ["2026-07-05","Trójkąty."],
+  ["2026-07-05","Czworokąty i inne wielokąty."],
+  ["2026-07-05","Kąty."],
+  ["2026-07-05","Kąty w trójkątach i czworokątach."],
+  ["2026-07-05","Sprawdzian - Figury na płaszczyźnie."],
+  ["2026-07-19","Droga."],
+  ["2026-07-19","Prędkość."],
+  ["2026-07-19","Czas."],
+  ["2026-07-19","Sprawdzian - Prędkość, droga, czas."],
+  ["2026-07-26","Pole prostokąta."],
+  ["2026-07-26","Pole równoległoboku i rombu."],
+  ["2026-07-26","Pole trójkąta."],
+  ["2026-07-26","Pole trapezu."],
+  ["2026-07-26","Sprawdzian - Pola wielokątów."]
+];
+
+const seededColumns=[
+  ["A1",1,"#f3c13a"],["PL1",1,"#ffffff"],["A2",1,"#f3c13a"],["S1",3,"#ff3333"],["A3",1,"#f3c13a"],
+  ["K1",2,"#77aa55"],["A4",1,"#f3c13a"],["K2",2,"#d6bd48"],["S2",3,"#ff3333"],["PL2",2,"#a020f0"],
+  ["A5",1,"#2f74ff"],["ODP1",1,"#2f74ff"],["ODP2",1,"#2f74ff"],["A6",1,"#f3c13a"],["K3",2,"#77aa55"],
+  ["S3",3,"#ff3333"],["A7",1,"#111111"]
+];
+
+const seededGrades={
+  "Kowalski Czesław":{"A1":"6","PL1":"5","A2":"6","S1":"5-","A3":"6","K1":"5","A4":"6","K2":"6","S2":"5+","PL2":"6","A5":"6","ODP1":"6","ODP2":"6","A6":"6","K3":"6","S3":"5+","A7":"+"},
+  "Kowalski Rafał Paweł":{"A1":"6","PL1":"5+","A2":"6","S1":"5-","A3":"6","K1":"5+","A4":"+","K2":"6","S2":"nb","PL2":"","A5":"","ODP1":"6","ODP2":"","A6":"","K3":"nb","S3":"nb","A7":""}
+};
+
+function seedMathClass6IfNeeded(){
+  if(db.seedMathClass6_2026)return false;
+  db.students=[
+    {no:"1",name:"Kowalski Czesław",email:"czeskowa34@edudziennik.local",password:""},
+    {no:"2",name:"Kowalski Rafał Paweł",email:"rafkowa12@edudziennik.local",password:""}
+  ];
+  db.users=[
+    {email:"xremskyyt@gmail.com",role:"teacher",name:"Nauczyciel matematyki"},
+    {email:"czeskowa34@edudziennik.local",role:"student",name:"Kowalski Czesław"},
+    {email:"rafkowa12@edudziennik.local",role:"student",name:"Kowalski Rafał Paweł"}
+  ];
+  db.columns=(db.columns||[]).filter(c=>c.subject!=="Matematyka");
+  seededColumns.forEach(([code,weight,color])=>{
+    db.columns.push({subject:"Matematyka",code,desc:code,weight:Number(weight),semester:"1",color});
+  });
+  db.lessons=(db.lessons||[]).filter(l=>!(l.cls==="6F"&&l.subject==="Matematyka"));
+  seededTopics.forEach(([date,topic],idx)=>{
+    db.lessons.push({cls:"6F",subject:"Matematyka",topic,desc:"",lessonNo:String(idx+1),date});
+  });
+  db.grades=db.grades||{};
+  Object.keys(seededGrades).forEach(student=>{
+    Object.entries(seededGrades[student]).forEach(([code,grade])=>{
+      if(grade!==""){
+        db.grades["6F|Matematyka|"+student+"|"+code]={grade,desc:code,date:"2026-07-26"};
+      }
+    });
+  });
+  db.seedMathClass6_2026=true;
+  selectedStudent="Kowalski Czesław";
+  return true;
+}
+
+
 onAuthStateChanged(auth, async (user)=>{
   try{
   if(!user)return;
@@ -330,6 +432,7 @@ onAuthStateChanged(auth, async (user)=>{
     await setDoc(dataRef, db, {merge:false});
   }
 
+  if(seedMathClass6IfNeeded()) await save();
   currentUser=db.users.find(u=>u.email===user.email);
   if(!currentUser){
     alert("To konto nie jest wpisane w dzienniku.");
@@ -510,22 +613,55 @@ function finalCell(cls,subject,st,type){
 }
 window.setFinal=async function(cls,subject,st,type,val){db.finals[finalKey(cls,subject,st,type)]=val;await save()}
 
+function gradeColorClass(grade, code){
+  grade=String(grade||"").trim();
+  if(["S1","S2","S3"].includes(code) || grade==="5-" || grade==="nb") return "g-red";
+  if(["A5","ODP1","ODP2","PL2"].includes(code) || grade==="6") return code==="PL2" ? "g-purple" : "g-blue";
+  if(["K1","K3"].includes(code) || grade==="5" || grade==="5+") return "g-green";
+  return "g-black";
+}
+function gradeBgClass(code, grade){
+  if(["A1","A2","A3","A4","A6"].includes(code)) return "bg-yellow";
+  if(code==="K2" || code==="S2") return "bg-yellow";
+  if(String(grade||"").trim()==="+") return "bg-yellow";
+  return "";
+}
 function renderGrades(){
-  if(currentCls()!=="6F"){gradesTable.innerHTML="<tr><td>Oceny bieżące są tylko w folderze 6F.</td></tr>";return}
+  if(currentCls()!=="6F"){
+    gradesTable.outerHTML="<table id='gradesTable'><tr><td>Oceny bieżące są tylko w folderze 6F.</td></tr></table>";
+    return;
+  }
   let cols=db.columns.filter(c=>c.subject===currentSubject());
   let studs=roleNow==="student"?db.students.filter(s=>s.name===selectedStudent):db.students;
-  let html="<tr><th>Nr</th><th>Uczeń</th>";
-  cols.forEach(c=>html+=`<th style="border-top:5px solid ${c.color}" title="${c.desc} | waga ${c.weight}"><span class="colorDot" style="background:${c.color}"></span>${c.code}</th>`);
-  html+="<th>Średnia śródroczna</th><th>Ocena śródroczna</th><th>Średnia II</th><th>Ocena II</th><th>Ocena roczna</th></tr>";
+  let html="<table id='gradesTable' class='gradeSheet'>";
+  html+="<tr class='weightRow'><th class='nr'></th><th class='studentName'></th>";
+  cols.forEach(c=>html+=`<th>${Number(c.weight).toFixed(1)}</th>`);
+  html+="<th>Śr. I</th><th>Śródr.</th><th>Śr. II</th><th>Roczna</th></tr>";
+
+  html+="<tr class='codeRow'><th class='nr'>Nr</th><th>Uczeń</th>";
+  cols.forEach(c=>html+=`<th title="${c.desc}">${c.code}</th>`);
+  html+="<th></th><th></th><th></th><th></th></tr>";
+
   studs.forEach(s=>{
-    html+=`<tr><td>${s.no}</td><td class="name">${s.name}</td>`;
+    html+=`<tr><td class="nr">${s.no}</td><td class="studentName">${s.name}</td>`;
     cols.forEach(c=>{
       let x=db.grades["6F|"+currentSubject()+"|"+s.name+"|"+c.code]||{};
-      html+=`<td onclick="openGrade('${s.name}','${c.code}')" title="${x.desc||c.desc||""}\n${x.date||""}"><span class="badge" style="background:${c.color}">${x.grade||""}</span></td>`;
+      let grade=x.grade||"";
+      let cc=gradeColorClass(grade,c.code);
+      let bg=gradeBgClass(c.code,grade);
+      let comment=(x.desc||c.desc||x.date) ? "hasComment" : "";
+      html+=`<td class="gradeCell ${bg} ${comment}" onclick="openGrade('${s.name}','${c.code}')" title="${x.desc||c.desc||""}\n${x.date||""}">
+        <span class="gradeText ${cc}">${grade}</span>
+      </td>`;
     });
-    html+=`<td><b>${avg(s.name,1)}</b></td><td>${finalCell("6F",currentSubject(),s.name,"srodroczna")}</td><td><b>${avg(s.name,2)}</b></td><td>${finalCell("6F",currentSubject(),s.name,"semestr2")}</td><td>${finalCell("6F",currentSubject(),s.name,"roczna")}</td></tr>`;
+    html+=`<td><b>${avg(s.name,1)}</b></td>
+      <td>${finalCell("6F",currentSubject(),s.name,"srodroczna")}</td>
+      <td><b>${avg(s.name,2)}</b></td>
+      <td>${finalCell("6F",currentSubject(),s.name,"roczna")}</td></tr>`;
   });
-  gradesTable.innerHTML=html;
+  html+="</table>";
+  const old=document.getElementById("gradesTable");
+  if(old) old.outerHTML=html;
 }
 function renderFinals(){
   let cls=currentCls();
