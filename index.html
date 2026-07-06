@@ -126,7 +126,7 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
   <div class="tool" onclick="show('frekwencja')"><div class="ico blue"></div><div>Frekwencja</div></div>
   <div class="tool" onclick="show('uwagi')"><div class="ico red"></div><div>Uwagi</div></div>
   <div class="tool" onclick="show('poczta')"><div class="ico blue"></div><div>Poczta</div></div>
-  <div class="tool" onclick="show('swiadectwo')"><div class="ico"></div><div>Świadectwo</div></div>
+  <div class="tool parentNoAccess" onclick="show('swiadectwo')"><div class="ico"></div><div>Świadectwo</div></div>
   <div class="tool teacherOnly" onclick="show('uczniowie')"><div class="ico blue"></div><div>Uczniowie</div></div>
   <div class="tool teacherOnly" onclick="show('konta')"><div class="ico green"></div><div>Konta</div></div>
 </div>
@@ -237,7 +237,7 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
       <div class="menuItem" onclick="show('frekwencja')">Frekwencja</div>
       <div class="menuItem" onclick="show('uwagi')">Uwagi</div>
       <div class="menuItem" onclick="show('poczta')">Skrzynka pocztowa</div>
-      <div class="menuItem" onclick="show('swiadectwo')">Drukuj świadectwo</div>
+      <div class="menuItem parentNoAccess" onclick="show('swiadectwo')">Drukuj świadectwo</div>
       <div class="menuItem teacherOnly" onclick="show('uczniowie')">Uczniowie</div>
       <div class="menuItem teacherOnly" onclick="show('konta')">Konta</div>
     </div>
@@ -343,11 +343,13 @@ const defaultData={
   users:[
     {email:"xremskyyt@gmail.com",role:"teacher",name:"Nauczyciel matematyki"},
     {email:"czeskowa34@edudziennik.local",role:"student",name:"Kowalski Czesław"},
-    {email:"rafkowa12@edudziennik.local",role:"student",name:"Kowalski Rafał Paweł"}
+    {email:"rafkowa12@edudziennik.local",role:"student",name:"Kowalski Rafał Paweł"},
+    {email:"rekin123@interia.pl",role:"parent",name:"Rodzic Rafała",studentName:"Kowalski Rafał Paweł"},
+    {email:"rekin123@interia.pl",role:"parent",name:"Rodzic Rafała",studentName:"Kowalski Rafał Paweł"}
   ],
   students:[
     {no:"1",name:"Kowalski Czesław",email:"czeskowa34@edudziennik.local",password:"",parentEmail:"rodzic.czeslaw@example.com"},
-    {no:"2",name:"Kowalski Rafał Paweł",email:"rafkowa12@edudziennik.local",password:"",parentEmail:"rodzic.rafal@example.com"}
+    {no:"2",name:"Kowalski Rafał Paweł",email:"rafkowa12@edudziennik.local",password:"",parentEmail:"rekin123@interia.pl"}
   ],
   columns:[],grades:{},finals:{},attendance:[],lessons:[],notes:[],parentMessages:[]
 };
@@ -448,12 +450,14 @@ function seedMathClass6IfNeeded(){
   if(db.seedMathClass6_2026)return false;
   db.students=[
     {no:"1",name:"Kowalski Czesław",email:"czeskowa34@edudziennik.local",password:"",parentEmail:"rodzic.czeslaw@example.com"},
-    {no:"2",name:"Kowalski Rafał Paweł",email:"rafkowa12@edudziennik.local",password:"",parentEmail:"rodzic.rafal@example.com"}
+    {no:"2",name:"Kowalski Rafał Paweł",email:"rafkowa12@edudziennik.local",password:"",parentEmail:"rekin123@interia.pl"}
   ];
   db.users=[
     {email:"xremskyyt@gmail.com",role:"teacher",name:"Nauczyciel matematyki"},
     {email:"czeskowa34@edudziennik.local",role:"student",name:"Kowalski Czesław"},
-    {email:"rafkowa12@edudziennik.local",role:"student",name:"Kowalski Rafał Paweł"}
+    {email:"rafkowa12@edudziennik.local",role:"student",name:"Kowalski Rafał Paweł"},
+    {email:"rekin123@interia.pl",role:"parent",name:"Rodzic Rafała",studentName:"Kowalski Rafał Paweł"},
+    {email:"rekin123@interia.pl",role:"parent",name:"Rodzic Rafała",studentName:"Kowalski Rafał Paweł"}
   ];
   db.columns=(db.columns||[]).filter(c=>c.subject!=="Matematyka");
   seededColumns.forEach(([code,weight,color])=>{
@@ -509,24 +513,24 @@ onAuthStateChanged(auth, async (user)=>{
     return;
   }
   roleNow=currentUser.role;
-  selectedStudent=roleNow==="student"?currentUser.name:(db.students[0]?.name||"");
+  selectedStudent=(roleNow==="student"?currentUser.name:(roleNow==="parent"?currentUser.studentName:(db.students[0]?.name||"")));
   hideEl('loginBox'); showEl('app');
-  txt('roleLabel',roleNow==="teacher"?"Nauczyciel":"Uczeń");
+  txt('roleLabel',roleNow==="teacher"?"Nauczyciel":(roleNow==="parent"?"Rodzic":"Uczeń"));
   txt('who',currentUser.name);
-  htmlSet('hello',roleNow==="teacher"?"Witaj, <b>nauczycielu</b>.":"Witaj, <b>"+currentUser.name+"</b>.");
+  htmlSet('hello',roleNow==="teacher"?"Witaj, <b>nauczycielu</b>.":(roleNow==="parent"?"Witaj, <b>"+currentUser.name+"</b>. Panel rodzica ucznia: <b>"+selectedStudent+"</b>.":"Witaj, <b>"+currentUser.name+"</b>."));
 
   if(unsub)unsub();
   unsub=onSnapshot(dataRef,(s)=>{ if(s.exists()){ db={...structuredClone(defaultData), ...s.data()}; db.users=defaultData.users; db.students=defaultData.students; renderAll(); } });
   }catch(err){ console.error(err); document.body.innerHTML='<div style="padding:30px;font-family:Arial"><h1>Błąd po logowaniu</h1><pre>'+String(err)+'</pre></div>'; }
 });
 
-window.show=function(id){document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));const page=$(id); if(page) page.classList.remove("hidden");renderAll()}
+window.show=function(id){if(roleNow==='parent' && id==='swiadectwo'){alert('Rodzic nie ma dostępu do świadectw.');return;}document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));const page=$(id); if(page) page.classList.remove("hidden");renderAll()}
 window.chooseClass=function(c){classSelect.value=c; show("koncowe"); renderAll()}
 window.chooseStudent=function(n){if(roleNow==="teacher"){selectedStudent=n;renderAll()}}
 
 function renderTree(){
   let html=`<div class="treeItem school">${db.school}</div>`;
-  if(roleNow==="student"){
+  if(roleNow==="student" || roleNow==="parent"){
     html+=`<div class="treeItem student" onclick="chooseStudent('${selectedStudent}')">${selectedStudent}</div>`;
   }else{
     db.classes.forEach(c=>{
@@ -818,7 +822,7 @@ function renderGrades(){
     return;
   }
   let cols=db.columns.filter(c=>c.subject===currentSubject());
-  let studs=roleNow==="student"?db.students.filter(s=>s.name===selectedStudent):db.students;
+  let studs=(roleNow==="student"||roleNow==="parent")?db.students.filter(s=>s.name===selectedStudent):db.students;
   let html="<table id='gradesTable' class='gradeSheet'>";
   html+="<tr class='weightRow'><th class='nr'></th><th class='studentName'></th>";
   cols.forEach(c=>html+=`<th>${Number(c.weight).toFixed(1)}</th>`);
@@ -855,7 +859,7 @@ ${x.date||""}">
 }
 function renderFinals(){
   let cls=currentCls();
-  let studs=roleNow==="student"?db.students.filter(s=>s.name===selectedStudent):db.students;
+  let studs=(roleNow==="student"||roleNow==="parent")?db.students.filter(s=>s.name===selectedStudent):db.students;
   let html="<tr><th>Folder klasy</th><th>Uczeń</th><th>Przedmiot</th><th>Ocena śródroczna</th><th>Ocena roczna</th></tr>";
   studs.forEach(s=>subjects.forEach(sub=>html+=`<tr><td>${cls}</td><td class="name">${s.name}</td><td>${sub}</td><td>${finalCell(cls,sub,s.name,"srodroczna")}</td><td>${finalCell(cls,sub,s.name,"roczna")}</td></tr>`));
   finalsTable.innerHTML=html;
@@ -990,23 +994,25 @@ let mailMode="inbox";
 
 function currentIdentity(){
   if(!currentUser)return {email:"",name:"",role:""};
-  return {email:currentUser.email,name:currentUser.name,role:currentUser.role};
+  return {email:currentUser.email||"",name:currentUser.name||"",role:currentUser.role||""};
 }
 function getRecipients(){
   let rec=[];
-  // teacher
-  (db.users||[]).filter(u=>u.role==="teacher").forEach(u=>rec.push({email:u.email,name:u.name||"Nauczyciel",role:"teacher"}));
-  // students
-  (db.students||[]).forEach(s=>rec.push({email:s.email,name:s.name,role:"student"}));
-  // parents from students
-  (db.students||[]).forEach(s=>{
-    if(s.parentEmail) rec.push({email:s.parentEmail,name:"Rodzic: "+s.name,role:"parent"});
-  });
-  // unique and remove current
-  const me=currentIdentity().email;
+  const me=currentIdentity();
+  if(me.role==="parent"){
+    (db.users||[]).filter(u=>u.role==="teacher").forEach(u=>rec.push({email:u.email,name:u.name||"Nauczyciel",role:"teacher"}));
+  }else if(me.role==="student"){
+    (db.users||[]).filter(u=>u.role==="teacher").forEach(u=>rec.push({email:u.email,name:u.name||"Nauczyciel",role:"teacher"}));
+  }else{
+    // teacher can send to students and parents
+    (db.students||[]).forEach(s=>{
+      rec.push({email:s.email,name:s.name,role:"student"});
+      if(s.parentEmail) rec.push({email:s.parentEmail,name:"Rodzic: "+s.name,role:"parent"});
+    });
+  }
   const seen=new Set();
   return rec.filter(r=>{
-    if(!r.email || r.email===me || seen.has(r.email))return false;
+    if(!r.email || r.email===me.email || seen.has(r.email))return false;
     seen.add(r.email); return true;
   });
 }
@@ -1022,46 +1028,53 @@ function messageMatchesMode(m){
   return true;
 }
 window.renderMailbox=function(){
-  if(!document.getElementById("mailBoxPanel"))return;
-  if(!db.messages)db.messages=[];
-  if(mailMode==="compose"){
-    const rec=getRecipients();
-    mailBoxPanel.innerHTML=`
-      <h3>Nowa wiadomość</h3>
-      <label>Odbiorca</label>
-      <select id="msgTo">${rec.map(r=>`<option value="${r.email}">${r.name} — ${r.email}</option>`).join("")}</select>
-      <label>Temat</label>
-      <input id="msgSubject" placeholder="Temat wiadomości" style="width:100%;margin:6px 0">
-      <label>Treść</label>
-      <textarea id="msgBody" placeholder="Treść wiadomości" rows="6" style="width:100%"></textarea>
-      <button class="primary" onclick="sendInternalMessage()">Wyślij</button>
-    `;
-    return;
+  try{
+    const panel=document.getElementById("mailBoxPanel");
+    if(!panel)return;
+    if(!db.messages)db.messages=[];
+    if(mailMode==="compose"){
+      const rec=getRecipients();
+      panel.innerHTML=`
+        <h3>Nowa wiadomość</h3>
+        <label>Odbiorca</label>
+        <select id="msgTo">${rec.map(r=>`<option value="${r.email}">${r.name} — ${r.email}</option>`).join("")}</select>
+        <label>Temat</label>
+        <input id="msgSubject" placeholder="Temat wiadomości" style="width:100%;margin:6px 0">
+        <label>Treść</label>
+        <textarea id="msgBody" placeholder="Treść wiadomości" rows="6" style="width:100%"></textarea>
+        <button class="primary" onclick="sendInternalMessage()">Wyślij</button>
+      `;
+      return;
+    }
+    let list=(db.messages||[]).filter(canSeeMessage).filter(messageMatchesMode).slice().sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));
+    let title=mailMode==="inbox"?"Odebrane":mailMode==="sent"?"Wysłane":"Wszystkie wiadomości";
+    let out=`<h3>${title}</h3>`;
+    if(list.length===0) out+="<p>Brak wiadomości.</p>";
+    else{
+      out+=`<div class="mailList">`;
+      list.forEach(m=>{
+        const realIndex=db.messages.indexOf(m);
+        const unread=(m.toEmail===currentIdentity().email && !m.read);
+        out+=`<div class="mailItem ${unread?'unread':''}" onclick="openMessage(${realIndex})">
+          <div><b>${m.subject||"(bez tematu)"}</b></div>
+          <div class="mailMeta">Od: ${m.fromName||m.fromEmail} &lt;${m.fromEmail||""}&gt; → Do: ${m.toEmail||""} | ${m.createdAt||""}</div>
+        </div>`;
+      });
+      out+=`</div>`;
+    }
+    panel.innerHTML=out;
+  }catch(err){
+    console.error(err);
+    const panel=document.getElementById("mailBoxPanel");
+    if(panel)panel.innerHTML="<p>Błąd skrzynki pocztowej. Zobacz F12 → Console.</p>";
   }
-  let list=(db.messages||[]).filter(canSeeMessage).filter(messageMatchesMode).slice().sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));
-  let title=mailMode==="inbox"?"Odebrane":mailMode==="sent"?"Wysłane":"Wszystkie wiadomości";
-  let html=`<h3>${title}</h3>`;
-  if(list.length===0) html+="<p>Brak wiadomości.</p>";
-  else{
-    html+=`<div class="mailList">`;
-    list.forEach(m=>{
-      const realIndex=db.messages.indexOf(m);
-      const unread=(m.toEmail===currentIdentity().email && !m.read);
-      html+=`<div class="mailItem ${unread?'unread':''}" onclick="openMessage(${realIndex})">
-        <div><b>${m.subject||"(bez tematu)"}</b></div>
-        <div class="mailMeta">Od: ${m.fromName} &lt;${m.fromEmail}&gt; → Do: ${m.toEmail} | ${m.createdAt||""}</div>
-      </div>`;
-    });
-    html+=`</div>`;
-  }
-  mailBoxPanel.innerHTML=html;
 }
 window.sendInternalMessage=async function(){
   const me=currentIdentity();
-  const to=msgTo.value;
+  const to=document.getElementById("msgTo")?.value || "";
   const rec=getRecipients().find(r=>r.email===to);
   if(!to)return alert("Wybierz odbiorcę.");
-  if(!msgBody.value.trim() && !msgSubject.value.trim())return alert("Wpisz temat albo treść.");
+  const subj=document.getElementById("msgSubject")?.value || ""; const body=document.getElementById("msgBody")?.value || ""; if(!body.trim() && !subj.trim())return alert("Wpisz temat albo treść.");
   db.messages=db.messages||[];
   db.messages.push({
     fromEmail:me.email,
@@ -1069,8 +1082,8 @@ window.sendInternalMessage=async function(){
     fromRole:me.role,
     toEmail:to,
     toName:rec?.name||to,
-    subject:msgSubject.value.trim(),
-    body:msgBody.value,
+    subject:subj.trim(),
+    body:body,
     createdAt:now(),
     read:false
   });
@@ -1082,7 +1095,7 @@ window.openMessage=async function(i){
   let m=db.messages[i]; if(!m)return;
   const me=currentIdentity();
   if(m.toEmail===me.email && !m.read){m.read=true; await save();}
-  mailBoxPanel.innerHTML=`
+  document.getElementById("mailBoxPanel").innerHTML=`
     <button onclick="renderMailbox()">← Wróć</button>
     <h3>${m.subject||"(bez tematu)"}</h3>
     <div class="mailMeta">Od: ${m.fromName} &lt;${m.fromEmail}&gt;<br>Do: ${m.toName||m.toEmail} &lt;${m.toEmail}&gt;<br>Data: ${m.createdAt||""}</div>
@@ -1097,8 +1110,8 @@ window.replyMessage=function(i){
   mailMode="compose";
   renderMailbox();
   setTimeout(()=>{
-    msgTo.value=m.fromEmail;
-    msgSubject.value=(m.subject||"").startsWith("Re:") ? m.subject : "Re: "+(m.subject||"");
+    document.getElementById("msgTo").value=m.fromEmail;
+    document.getElementById("msgSubject").value=(m.subject||"").startsWith("Re:") ? m.subject : "Re: "+(m.subject||"");
   },0);
 }
 window.deleteMessage=async function(i){
@@ -1111,9 +1124,9 @@ window.deleteMessage=async function(i){
 function renderAll(){
   try{
     txt('currentClass',currentCls()); txt('currentLesson',currentSubject()); txt('currentStudentText',selectedStudent||"—");
-    renderTree();renderSelects();renderStudents();renderAccounts();renderColumns();renderGrades();renderFinals();renderAttendance();renderLessons();renderNotes();renderMailbox();renderCertSelects();
+    renderTree();renderSelects();renderStudents();renderAccounts();renderColumns();renderGrades();renderFinals();renderAttendance();renderLessons();renderNotes();try{renderMailbox();}catch(e){console.error(e);}renderCertSelects();
     document.querySelectorAll(".teacherOnly").forEach(e=>e.style.display=roleNow==="teacher"?"":"none");
-    const clsSel=document.getElementById("classSelect"); if(clsSel) clsSel.style.display=roleNow==="teacher"?"":"none";
+    const clsSel=document.getElementById("classSelect"); if(clsSel) clsSel.style.display=roleNow==="teacher"?"":"none"; document.querySelectorAll(".parentNoAccess").forEach(e=>e.style.display=roleNow==="parent"?"none":"");
   }catch(err){
     console.error(err);
     document.body.innerHTML='<div style="padding:30px;font-family:Arial"><h1>Błąd renderowania</h1><pre>'+String(err)+'</pre></div>';
