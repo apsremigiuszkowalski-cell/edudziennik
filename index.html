@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<title>EduPanel — oceny bieżące i końcowe</title>
+<title>EduPanel Firebase — e-dziennik online</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;font-family:Tahoma,Arial,sans-serif;background:#dfe6ee;color:#17212b;font-size:13px}
@@ -11,72 +11,54 @@ button{border:1px solid #8d9aa8;background:linear-gradient(#fff,#dbe3eb);padding
 button.primary{background:linear-gradient(#fff4a8,#f2c300);font-weight:bold}
 button.danger{background:#ffd8d8}
 input,select,textarea{border:1px solid #9aaabc;padding:6px;background:white}
-.login{max-width:430px;margin:70px auto;background:white;border:1px solid #8aa5bb;padding:20px;box-shadow:0 2px 14px #0004}
+.login{max-width:470px;margin:70px auto;background:white;border:1px solid #8aa5bb;padding:20px;box-shadow:0 2px 14px #0004}
 .login h1{margin:0 0 8px;color:#285272}
-.small{font-size:11px;color:#555}
-.error{color:#b00020;font-weight:bold}
+.small{font-size:11px;color:#555}.error{color:#b00020;font-weight:bold}
 .app{display:none}
 .top{height:31px;background:#b7c9da;border-bottom:1px solid #8aa5bb;display:flex;align-items:flex-end;padding-left:6px}
-.tab{background:#8fb0cd;color:white;padding:7px 14px;border:1px solid #7e9cb5;border-bottom:0;font-weight:bold}
-.tab.active{background:#ffd940;color:#222}
+.tab{background:#8fb0cd;color:white;padding:7px 14px;border:1px solid #7e9cb5;border-bottom:0;font-weight:bold}.tab.active{background:#ffd940;color:#222}
 .ribbon{height:72px;background:linear-gradient(#355f82,#173d5b);display:flex;gap:20px;align-items:center;padding:8px 16px;color:white}
-.tool{text-align:center;width:92px;cursor:pointer}
-.ico{width:34px;height:28px;margin:auto;background:#f4c400;border:2px solid white;box-shadow:0 1px 4px #0008}
+.tool{text-align:center;width:92px;cursor:pointer}.ico{width:34px;height:28px;margin:auto;background:#f4c400;border:2px solid white;box-shadow:0 1px 4px #0008}
 .ico.blue{background:#4b9bd6}.ico.green{background:#41a35a}.ico.red{background:#d85c5c}
 .lessonBar{background:#eef3f8;border-bottom:1px solid #a3afba;padding:8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .layout{display:grid;grid-template-columns:245px 1fr 255px;gap:5px;padding:5px;height:calc(100vh - 140px)}
-.panel{background:#f7f7f7;border:1px solid #a3afba;overflow:auto}
-.panelTitle{background:linear-gradient(#fff,#d8e0e8);padding:8px;border-bottom:1px solid #a3afba;font-weight:bold;color:#153e5e}
-.tree,.menu{padding:6px}
-.treeItem,.menuItem{padding:6px;cursor:pointer;border-bottom:1px solid #e1e5ea}
-.treeItem:hover,.menuItem:hover,.activeItem{background:#fff2a8}
-.school:before{content:"🏫 "}
-.class:before{content:"📁 "}
-.student:before{content:"👤 "}
-.main{background:white;border:1px solid #a3afba;overflow:auto;padding:10px}
-.card{border:1px solid #b8c5d1;background:white;margin-bottom:10px}
-.card h2{margin:0;background:#e8eef5;padding:8px;color:#18415f;font-size:15px}
-.body{padding:10px;overflow:auto}
+.panel{background:#f7f7f7;border:1px solid #a3afba;overflow:auto}.panelTitle{background:linear-gradient(#fff,#d8e0e8);padding:8px;border-bottom:1px solid #a3afba;font-weight:bold;color:#153e5e}
+.tree,.menu{padding:6px}.treeItem,.menuItem{padding:6px;cursor:pointer;border-bottom:1px solid #e1e5ea}.treeItem:hover,.menuItem:hover,.activeItem{background:#fff2a8}
+.school:before{content:"🏫 "}.class:before{content:"📁 "}.student:before{content:"👤 "}
+.main{background:white;border:1px solid #a3afba;overflow:auto;padding:10px}.card{border:1px solid #b8c5d1;background:white;margin-bottom:10px}
+.card h2{margin:0;background:#e8eef5;padding:8px;color:#18415f;font-size:15px}.body{padding:10px;overflow:auto}
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-table{width:100%;border-collapse:collapse;background:white;min-width:900px}
-th{background:linear-gradient(#f7f7f7,#d9dfe6);border:1px solid #b7c4d0;padding:7px;text-align:left;white-space:nowrap}
-td{border:1px solid #d7dde5;padding:7px;text-align:center}
-td.name{text-align:left;font-weight:bold;white-space:nowrap}
-.hidden{display:none}
-.badge{display:inline-block;color:white;padding:3px 7px;border-radius:3px;font-weight:bold;min-width:24px}
-.modalBg{display:none;position:fixed;inset:0;background:#0006;align-items:center;justify-content:center}
-.modal{width:480px;background:white;border:1px solid #6789a5;box-shadow:0 4px 18px #0007}
-.modal h3{margin:0;background:linear-gradient(#9bbad3,#6f94b0);color:white;padding:9px}
-.modalBody{padding:14px}
-.modalBody label{display:block;margin-top:8px}
-.modalBody input,.modalBody select,.modalBody textarea{width:100%}
-.colorDot{display:inline-block;width:12px;height:12px;border:1px solid #555;margin-right:4px;vertical-align:middle}
-.finalInput{width:95px;text-align:center}
-.finalInput.exempt{background:#fff8df}
-.gradeInput{width:90px}
-@media(max-width:900px){.layout{grid-template-columns:1fr;height:auto}.panel{max-height:260px}.ribbon{height:auto;flex-wrap:wrap}}
+table{width:100%;border-collapse:collapse;background:white;min-width:900px}th{background:linear-gradient(#f7f7f7,#d9dfe6);border:1px solid #b7c4d0;padding:7px;text-align:left;white-space:nowrap}
+td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:left;font-weight:bold;white-space:nowrap}.hidden{display:none}
+.badge{display:inline-block;color:white;padding:3px 7px;border-radius:3px;font-weight:bold;min-width:24px}.modalBg{display:none;position:fixed;inset:0;background:#0006;align-items:center;justify-content:center}
+.modal{width:480px;background:white;border:1px solid #6789a5;box-shadow:0 4px 18px #0007}.modal h3{margin:0;background:linear-gradient(#9bbad3,#6f94b0);color:white;padding:9px}
+.modalBody{padding:14px}.modalBody label{display:block;margin-top:8px}.modalBody input,.modalBody select,.modalBody textarea{width:100%}
+.colorDot{display:inline-block;width:12px;height:12px;border:1px solid #555;margin-right:4px;vertical-align:middle}.finalInput{width:95px;text-align:center}.finalInput.exempt{background:#fff8df}
+.status{background:#fff8df;border-left:5px solid #d9a400;padding:10px;margin:8px 0}
+@media(max-width:900px){.layout{grid-template-columns:1fr;height:auto}.panel{max-height:260px}.ribbon{height:auto;flex-wrap:wrap}.grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 
 <section id="loginBox" class="login">
-<h1>EduPanel 4F/5F/6F</h1>
-<p class="small">Fikcyjny e-dziennik do zabawy. Logowanie lokalne, nie jest prawdziwym zabezpieczeniem.</p>
-<label>Login</label>
-<input id="loginInput" placeholder="nauczyciel / uczen1 / uczen2" style="width:100%;margin:6px 0">
+<h1>EduPanel Firebase</h1>
+<p class="small">Wersja online: logowanie Firebase + zapis danych w Firestore.</p>
+<div class="status">
+<b>Domyślne konta do utworzenia w Firebase Authentication:</b><br>
+nauczyciel@edudziennik.local / matma6f<br>
+uczen1@edudziennik.local / 1234<br>
+uczen2@edudziennik.local / 1234
+</div>
+<label>Email</label>
+<input id="loginInput" placeholder="np. nauczyciel@edudziennik.local" style="width:100%;margin:6px 0">
 <label>Hasło</label>
 <input id="passInput" type="password" placeholder="hasło" style="width:100%;margin:6px 0">
 <button class="primary" style="width:100%;margin-top:8px" onclick="loginApp()">Zaloguj</button>
 <p id="loginError" class="error"></p>
-<div class="small">nauczyciel / matma6f<br>uczen1 / 1234<br>uczen2 / 1234</div>
 </section>
 
 <section id="app" class="app">
-<div class="top">
-  <div class="tab active">Dziennik</div>
-  <div class="tab">Klasy 4F / 5F / 6F</div>
-  <div class="tab" id="roleLabel">—</div>
-</div>
+<div class="top"><div class="tab active">Dziennik</div><div class="tab">Firebase Online</div><div class="tab" id="roleLabel">—</div></div>
 
 <div class="ribbon">
   <div class="tool" onclick="show('oceny')"><div class="ico"></div><div>Oceny 6F</div></div>
@@ -89,115 +71,64 @@ td.name{text-align:left;font-weight:bold;white-space:nowrap}
 </div>
 
 <div class="lessonBar">
-  <b>Folder klasy:</b>
-  <select id="classSelect" onchange="renderAll()">
-    <option>6F</option><option>5F</option><option>4F</option>
-  </select>
-  <b>Przedmiot:</b>
-  <select id="lessonSelect" onchange="renderAll()"></select>
+  <b>Folder klasy:</b><select id="classSelect" onchange="renderAll()"><option>6F</option><option>5F</option><option>4F</option></select>
+  <b>Przedmiot:</b><select id="lessonSelect" onchange="renderAll()"></select>
   <span>Zalogowano jako: <b id="who"></b></span>
+  <button onclick="logout()">Wyloguj</button>
 </div>
 
 <div class="layout">
-  <aside class="panel">
-    <div class="panelTitle">Foldery klas</div>
-    <div class="tree" id="tree"></div>
-  </aside>
+  <aside class="panel"><div class="panelTitle">Foldery klas</div><div class="tree" id="tree"></div></aside>
 
   <main class="main">
     <div id="start" class="page">
       <div class="card"><h2>Start</h2><div class="body">
-        <p id="hello"></p>
-        <p><b>Folder klasy:</b> <span id="currentClass"></span></p>
-        <p><b>Przedmiot:</b> <span id="currentLesson"></span></p>
-        <p><b>Wybrany uczeń:</b> <span id="currentStudentText"></span></p>
-        <p class="small">Oceny za I semestr nazywają się tutaj <b>śródroczne</b>, a końcowe <b>roczne</b>. W polach można wpisać np. 6, -6, 5+, -5, 4+, -4, 3+, -3, 2+, 2, 1 albo zwolniony.</p>
+        <p id="hello"></p><p><b>Folder klasy:</b> <span id="currentClass"></span></p>
+        <p><b>Przedmiot:</b> <span id="currentLesson"></span></p><p><b>Wybrany uczeń:</b> <span id="currentStudentText"></span></p>
+        <p class="small">Dane zapisują się online w Firebase Firestore.</p>
       </div></div>
     </div>
 
     <div id="uczniowie" class="page hidden">
       <div class="card teacherOnly"><h2>Uczniowie</h2><div class="body">
-        <div class="grid">
-          <input id="studentNo" placeholder="Numer">
-          <input id="studentName" placeholder="Imię i nazwisko">
-          <input id="studentLoginNew" placeholder="Login">
-          <input id="studentPasswordNew" placeholder="Hasło">
-        </div>
-        <button class="primary" onclick="addStudent()">Dodaj ucznia</button>
+        <div class="grid"><input id="studentNo" placeholder="Numer"><input id="studentName" placeholder="Imię i nazwisko"><input id="studentEmailNew" placeholder="Email ucznia w Firebase"><input id="studentPasswordNew" placeholder="Hasło informacyjnie"></div>
+        <button class="primary" onclick="addStudent()">Dodaj ucznia do dziennika</button>
+        <p class="small">Konto Firebase ucznia trzeba utworzyć w Firebase Authentication.</p>
       </div></div>
       <div class="card"><h2>Lista uczniów</h2><div class="body"><table id="studentsTable"></table></div></div>
     </div>
 
     <div id="konta" class="page hidden">
-      <div class="card teacherOnly"><h2>Konto nauczyciela</h2><div class="body">
-        <p class="small">Tu zmienisz login i hasło nauczyciela. Po zmianie wyloguj się i zaloguj nowymi danymi.</p>
-        <div class="grid">
-          <input id="teacherLoginEdit" placeholder="Nowy login nauczyciela">
-          <input id="teacherPassEdit" placeholder="Nowe hasło nauczyciela">
-          <button class="primary" onclick="changeTeacherAccount()">Zapisz login i hasło</button>
-        </div>
-      </div></div>
-      <div class="card teacherOnly"><h2>Lista kont</h2><div class="body"><table id="accountsTable"></table></div></div>
+      <div class="card teacherOnly"><h2>Konta</h2><div class="body"><table id="accountsTable"></table></div></div>
     </div>
 
     <div id="oceny" class="page hidden">
       <div class="card teacherOnly"><h2>Dodaj kolumnę ocen bieżących 6F</h2><div class="body">
-        <div class="grid">
-          <input id="colCode" placeholder="Kod, np. s1">
-          <input id="colDesc" placeholder="Opis">
-          <select id="colWeight"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select>
-          <select id="colSemester"><option value="1">Śródroczne</option><option value="2">Drugie półrocze</option></select>
-        </div>
-        <div class="grid">
-          <label>Kolor <input id="colColor" type="color" value="#cc3333"></label>
-          <button class="primary" onclick="addColumn()">Dodaj kolumnę</button>
-        </div>
+        <div class="grid"><input id="colCode" placeholder="Kod, np. s1"><input id="colDesc" placeholder="Opis"><select id="colWeight"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select><select id="colSemester"><option value="1">Śródroczne</option><option value="2">Drugie półrocze</option></select></div>
+        <div class="grid"><label>Kolor <input id="colColor" type="color" value="#cc3333"></label><button class="primary" onclick="addColumn()">Dodaj kolumnę</button></div>
       </div></div>
-      <div class="card teacherOnly"><h2>Kody kolumn</h2><div class="body">
-        <table id="columnsTable"></table>
-      </div></div>
-      <div class="card"><h2>Oceny bieżące 6F — wszyscy uczniowie razem</h2><div class="body">
-        <table id="gradesTable"></table>
-      </div></div>
+      <div class="card teacherOnly"><h2>Kody kolumn</h2><div class="body"><table id="columnsTable"></table></div></div>
+      <div class="card"><h2>Oceny bieżące 6F — wszyscy uczniowie razem</h2><div class="body"><table id="gradesTable"></table></div></div>
     </div>
 
     <div id="koncowe" class="page hidden">
       <div class="card"><h2>Wszystkie przedmioty — oceny śródroczne i roczne</h2><div class="body">
-        <p class="small">Kliknij folder klasy po lewej lub wybierz klasę u góry. Dla 4F/5F wpisujesz stare oceny, dla 6F możesz wpisywać aktualne. Możesz wpisać też: <b>zwolniony</b>.</p>
-        <table id="finalsTable"></table>
+        <p class="small">Możesz wpisać np. 6, 5, bdb, cel albo zwolniony.</p><table id="finalsTable"></table>
       </div></div>
     </div>
 
     <div id="frekwencja" class="page hidden">
-      <div class="card teacherOnly"><h2>Wpisz frekwencję</h2><div class="body">
-        <div class="grid">
-          <select id="attStudent"></select>
-          <select id="attStatus"><option>obecny</option><option>nieobecny</option><option>spóźnienie</option><option>zwolniony</option><option>usprawiedliwiony</option></select>
-          <button class="primary" onclick="addAttendance()">Zapisz</button>
-        </div>
-      </div></div>
+      <div class="card teacherOnly"><h2>Wpisz frekwencję</h2><div class="body"><div class="grid"><select id="attStudent"></select><select id="attStatus"><option>obecny</option><option>nieobecny</option><option>spóźnienie</option><option>zwolniony</option><option>usprawiedliwiony</option></select><button class="primary" onclick="addAttendance()">Zapisz</button></div></div></div>
       <div class="card"><h2>Frekwencja</h2><div class="body"><table id="attendanceTable"></table></div></div>
     </div>
 
     <div id="opis" class="page hidden">
-      <div class="card teacherOnly"><h2>Opis lekcji</h2><div class="body">
-        <input id="lessonTopic" placeholder="Temat lekcji">
-        <textarea id="lessonDesc" placeholder="Opis lekcji / praca domowa" rows="4"></textarea>
-        <button class="primary" onclick="addLesson()">Zapisz opis</button>
-      </div></div>
+      <div class="card teacherOnly"><h2>Opis lekcji</h2><div class="body"><input id="lessonTopic" placeholder="Temat lekcji"><textarea id="lessonDesc" placeholder="Opis lekcji / praca domowa" rows="4"></textarea><button class="primary" onclick="addLesson()">Zapisz opis</button></div></div>
       <div class="card"><h2>Opisy lekcji</h2><div class="body"><table id="lessonsTable"></table></div></div>
     </div>
 
     <div id="uwagi" class="page hidden">
-      <div class="card teacherOnly"><h2>Dodaj uwagę</h2><div class="body">
-        <div class="grid">
-          <select id="noteStudent"></select>
-          <select id="noteType"><option>pozytywna</option><option>negatywna</option><option>informacyjna</option></select>
-          <input id="notePoints" placeholder="Punkty">
-        </div>
-        <textarea id="noteText" placeholder="Treść uwagi" rows="3"></textarea>
-        <button class="primary" onclick="addNote()">Dodaj</button>
-      </div></div>
+      <div class="card teacherOnly"><h2>Dodaj uwagę</h2><div class="body"><div class="grid"><select id="noteStudent"></select><select id="noteType"><option>pozytywna</option><option>negatywna</option><option>informacyjna</option></select><input id="notePoints" placeholder="Punkty"></div><textarea id="noteText" placeholder="Treść uwagi" rows="3"></textarea><button class="primary" onclick="addNote()">Dodaj</button></div></div>
       <div class="card"><h2>Uwagi</h2><div class="body"><table id="notesTable"></table></div></div>
     </div>
   </main>
@@ -213,79 +144,103 @@ td.name{text-align:left;font-weight:bold;white-space:nowrap}
       <div class="menuItem" onclick="show('uwagi')">Uwagi</div>
       <div class="menuItem teacherOnly" onclick="show('uczniowie')">Uczniowie</div>
       <div class="menuItem teacherOnly" onclick="show('konta')">Konta</div>
-      <div class="menuItem" onclick="logout()">Wyloguj</div>
     </div>
   </aside>
 </div>
 </section>
 
 <div id="gradeModal" class="modalBg">
-  <div class="modal">
-    <h3>Wstaw ocenę bieżącą</h3>
-    <div class="modalBody">
-      <label>Uczeń</label><input id="gmStudent" readonly>
-      <label>Kod</label><input id="gmCode" readonly>
-      <label>Ocena — wpisz sam</label>
-      <input id="gmGrade" placeholder="np. 6, -6, 5+, -5, 4+, -4, 3+, -3, 2+, nb">
-      <label>Opis</label><input id="gmDesc">
-      <button class="primary" onclick="saveGrade()">Zapisz</button>
-      <button onclick="gradeModal.style.display='none'">Anuluj</button>
-    </div>
-  </div>
+  <div class="modal"><h3>Wstaw ocenę bieżącą</h3><div class="modalBody">
+    <label>Uczeń</label><input id="gmStudent" readonly><label>Kod</label><input id="gmCode" readonly>
+    <label>Ocena — wpisz sam</label><input id="gmGrade" placeholder="np. 6, -6, 5+, -5, 4+, -4, 3+, -3, 2+, nb">
+    <label>Opis</label><input id="gmDesc">
+    <button class="primary" onclick="saveGrade()">Zapisz</button><button onclick="gradeModal.style.display='none'">Anuluj</button>
+  </div></div>
 </div>
 
-<script>
-const subjects=[
-  "Język polski","Język angielski","Język niemiecki","Muzyka","Plastyka","Historia",
-  "Przyroda","Geografia","Biologia","Chemia","Fizyka","Matematyka","Informatyka",
-  "Technika","Wychowanie fizyczne"
-];
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
+const firebaseConfig = {
+  apiKey: "AIzaSyBjunoNoZ5XwEr1QMvaPTtBCwU3uS7QsTw",
+  authDomain: "edudziennik-8c5d3.firebaseapp.com",
+  projectId: "edudziennik-8c5d3",
+  storageBucket: "edudziennik-8c5d3.firebasestorage.app",
+  messagingSenderId: "1084928832475",
+  appId: "1:1084928832475:web:778ae33fe4a7692b34adfe",
+  measurementId: "G-LH3FEXEZW8"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const fs = getFirestore(app);
+const dataRef = doc(fs, "edudziennik", "main");
+
+const subjects=["Język polski","Język angielski","Język niemiecki","Muzyka","Plastyka","Historia","Przyroda","Geografia","Biologia","Chemia","Fizyka","Matematyka","Informatyka","Technika","Wychowanie fizyczne"];
 const defaultData={
   school:"Szkoła Demo",
   classes:["4F","5F","6F"],
   users:[
-    {login:"nauczyciel",password:"matma6f",role:"teacher",name:"Nauczyciel matematyki"},
-    {login:"uczen1",password:"1234",role:"student",name:"Dominik Marcin"},
-    {login:"uczen2",password:"1234",role:"student",name:"Rebeka Gabriela"}
+    {email:"nauczyciel@edudziennik.local",role:"teacher",name:"Nauczyciel matematyki"},
+    {email:"uczen1@edudziennik.local",role:"student",name:"Dominik Marcin"},
+    {email:"uczen2@edudziennik.local",role:"student",name:"Rebeka Gabriela"}
   ],
   students:[
-    {no:"1",name:"Dominik Marcin",login:"uczen1",password:"1234"},
-    {no:"2",name:"Rebeka Gabriela",login:"uczen2",password:"1234"}
+    {no:"1",name:"Dominik Marcin",email:"uczen1@edudziennik.local",password:"1234"},
+    {no:"2",name:"Rebeka Gabriela",email:"uczen2@edudziennik.local",password:"1234"}
   ],
-  columns:[],
-  grades:{},
-  finals:{},
-  attendance:[],
-  lessons:[],
-  notes:[]
+  columns:[],grades:{},finals:{},attendance:[],lessons:[],notes:[]
 };
 
-let db=JSON.parse(localStorage.eduPanelFinals456F_v2||JSON.stringify(defaultData));
-let currentUser=null, roleNow="teacher", selectedStudent=db.students[0]?.name||"", editStudent="", editCode="";
+let db=structuredClone(defaultData);
+let currentUser=null, roleNow="teacher", selectedStudent="Dominik Marcin", editStudent="", editCode="", unsub=null;
 
 function initSubjects(){lessonSelect.innerHTML=subjects.map(s=>`<option>${s}</option>`).join(""); lessonSelect.value="Matematyka"}
 function now(){let d=new Date();return d.toLocaleDateString("pl-PL")+" "+d.toLocaleTimeString("pl-PL",{hour:"2-digit",minute:"2-digit"})}
-function save(){localStorage.eduPanelFinals456F_v2=JSON.stringify(db)}
 function currentSubject(){return lessonSelect.value}
 function currentCls(){return classSelect.value}
+async function save(){await setDoc(dataRef, db, {merge:false})}
 
-function loginApp(){
-  const login=loginInput.value.trim(), pass=passInput.value;
-  const user=db.users.find(u=>u.login===login && u.password===pass);
-  if(!user){loginError.innerText="Nieprawidłowy login lub hasło.";return}
-  currentUser=user; roleNow=user.role;
-  selectedStudent=roleNow==="student"?user.name:(db.students[0]?.name||"");
+window.loginApp = async function(){
+  loginError.innerText="";
+  try{
+    await signInWithEmailAndPassword(auth, loginInput.value.trim(), passInput.value);
+  }catch(e){
+    loginError.innerText="Błąd logowania: "+e.message;
+  }
+}
+window.logout = async function(){ await signOut(auth); location.reload(); }
+
+onAuthStateChanged(auth, async (user)=>{
+  if(!user)return;
+  const snap=await getDoc(dataRef);
+  if(!snap.exists()){
+    await setDoc(dataRef, defaultData);
+    db=structuredClone(defaultData);
+  }else db=snap.data();
+
+  currentUser=db.users.find(u=>u.email===user.email);
+  if(!currentUser){
+    alert("To konto nie jest wpisane w dzienniku.");
+    await signOut(auth);
+    return;
+  }
+  roleNow=currentUser.role;
+  selectedStudent=roleNow==="student"?currentUser.name:(db.students[0]?.name||"");
   loginBox.style.display="none"; app.style.display="block";
   roleLabel.innerText=roleNow==="teacher"?"Nauczyciel":"Uczeń";
-  who.innerText=user.name;
-  hello.innerHTML=roleNow==="teacher"?"Witaj, <b>nauczycielu</b>.":"Witaj, <b>"+user.name+"</b>.";
-  renderAll();
-}
-function logout(){location.reload()}
-function show(id){document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));document.getElementById(id).classList.remove("hidden");renderAll()}
-function chooseClass(c){classSelect.value=c; show("koncowe"); renderAll()}
-function chooseStudent(n){if(roleNow==="teacher"){selectedStudent=n;renderAll()}}
+  who.innerText=currentUser.name;
+  hello.innerHTML=roleNow==="teacher"?"Witaj, <b>nauczycielu</b>.":"Witaj, <b>"+currentUser.name+"</b>.";
+
+  if(unsub)unsub();
+  unsub=onSnapshot(dataRef,(s)=>{ if(s.exists()){ db=s.data(); renderAll(); } });
+});
+
+window.show=function(id){document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));document.getElementById(id).classList.remove("hidden");renderAll()}
+window.chooseClass=function(c){classSelect.value=c; show("koncowe"); renderAll()}
+window.chooseStudent=function(n){if(roleNow==="teacher"){selectedStudent=n;renderAll()}}
 
 function renderTree(){
   let html=`<div class="treeItem school">${db.school}</div>`;
@@ -297,74 +252,72 @@ function renderTree(){
 }
 function renderSelects(){[attStudent,noteStudent].forEach(sel=>sel.innerHTML=db.students.map(s=>`<option>${s.name}</option>`).join(""))}
 
-function addStudent(){
-  if(!studentName.value.trim()||!studentLoginNew.value.trim()||!studentPasswordNew.value.trim())return alert("Wpisz imię, login i hasło.");
-  if(db.users.some(u=>u.login===studentLoginNew.value.trim()))return alert("Taki login już istnieje.");
-  const st={no:studentNo.value.trim()||String(db.students.length+1),name:studentName.value.trim(),login:studentLoginNew.value.trim(),password:studentPasswordNew.value.trim()};
-  db.students.push(st); db.users.push({login:st.login,password:st.password,role:"student",name:st.name});
-  studentNo.value=studentName.value=studentLoginNew.value=studentPasswordNew.value="";
-  save();renderAll();
+window.addStudent=async function(){
+  if(!studentName.value.trim()||!studentEmailNew.value.trim())return alert("Wpisz imię i email.");
+  if(db.users.some(u=>u.email===studentEmailNew.value.trim()))return alert("Taki email już istnieje.");
+  const st={no:studentNo.value.trim()||String(db.students.length+1),name:studentName.value.trim(),email:studentEmailNew.value.trim(),password:studentPasswordNew.value.trim()};
+  db.students.push(st); db.users.push({email:st.email,role:"student",name:st.name});
+  studentNo.value=studentName.value=studentEmailNew.value=studentPasswordNew.value="";
+  await save(); renderAll();
 }
-function deleteStudent(i){
-  if(!confirm("Usunąć ucznia?"))return;
-  const st=db.students[i]; db.students.splice(i,1); db.users=db.users.filter(u=>u.login!==st.login);
-  save();renderAll();
+window.deleteStudent=async function(i){
+  if(!confirm("Usunąć ucznia z dziennika? Konto Firebase trzeba usunąć osobno w Firebase."))return;
+  const st=db.students[i]; db.students.splice(i,1); db.users=db.users.filter(u=>u.email!==st.email);
+  await save();renderAll();
 }
-function renameStudent(i){
+window.renameStudent=async function(i){
   let n=prompt("Nowe imię i nazwisko:",db.students[i].name); if(!n)return;
   const old=db.students[i].name; db.students[i].name=n;
-  const u=db.users.find(x=>x.login===db.students[i].login); if(u)u.name=n;
+  const u=db.users.find(x=>x.email===db.students[i].email); if(u)u.name=n;
   Object.keys(db.grades).forEach(k=>{if(k.includes("|"+old+"|")){db.grades[k.replace("|"+old+"|","|"+n+"|")]=db.grades[k];delete db.grades[k]}});
   Object.keys(db.finals).forEach(k=>{if(k.includes("|"+old+"|")){db.finals[k.replace("|"+old+"|","|"+n+"|")]=db.finals[k];delete db.finals[k]}});
   if(selectedStudent===old)selectedStudent=n;
-  save();renderAll();
+  await save();renderAll();
 }
 function renderStudents(){
-  studentsTable.innerHTML="<tr><th>Nr</th><th>Uczeń</th><th>Aktualna klasa</th><th>Login</th><th>Hasło</th><th class='teacherOnly'>Akcja</th></tr>";
-  db.students.forEach((s,i)=>studentsTable.innerHTML+=`<tr><td>${s.no}</td><td>${s.name}</td><td>6F</td><td>${s.login}</td><td>${s.password}</td><td class="teacherOnly"><button onclick="renameStudent(${i})">Edytuj</button> <button class="danger" onclick="deleteStudent(${i})">Usuń</button></td></tr>`);
+  studentsTable.innerHTML="<tr><th>Nr</th><th>Uczeń</th><th>Aktualna klasa</th><th>Email</th><th>Hasło info</th><th class='teacherOnly'>Akcja</th></tr>";
+  db.students.forEach((s,i)=>studentsTable.innerHTML+=`<tr><td>${s.no}</td><td>${s.name}</td><td>6F</td><td>${s.email}</td><td>${s.password||"—"}</td><td class="teacherOnly"><button onclick="renameStudent(${i})">Edytuj</button> <button class="danger" onclick="deleteStudent(${i})">Usuń</button></td></tr>`);
 }
-
-function addColumn(){
+function renderAccounts(){
+  accountsTable.innerHTML="<tr><th>Email</th><th>Rola</th><th>Nazwa</th></tr>";
+  db.users.forEach(u=>accountsTable.innerHTML+=`<tr><td>${u.email}</td><td>${u.role}</td><td>${u.name}</td></tr>`);
+}
+window.addColumn=async function(){
   if(currentCls()!=="6F")return alert("Oceny bieżące są tylko dla aktualnej klasy 6F.");
   let code=colCode.value.trim(); if(!code)return alert("Wpisz kod.");
   let subject=currentSubject();
   if(db.columns.some(c=>c.code===code&&c.subject===subject))return alert("Taki kod już istnieje dla tego przedmiotu.");
   db.columns.push({subject,code,desc:colDesc.value.trim(),weight:Number(colWeight.value),semester:colSemester.value,color:colColor.value});
   colCode.value=colDesc.value="";
-  save();renderAll();
+  await save();renderAll();
+}
+function renderColumns(){
+  let subject=currentSubject();
+  let cols=db.columns.filter(c=>c.subject===subject);
+  columnsTable.innerHTML="<tr><th>Kod</th><th>Przedmiot</th><th>Opis</th><th>Waga</th><th>Okres</th><th>Kolor</th><th>Akcja</th></tr>";
+  if(cols.length===0){columnsTable.innerHTML+="<tr><td colspan='7'>Brak kodów dla tego przedmiotu.</td></tr>";return}
+  cols.forEach(c=>{
+    let realIndex=db.columns.findIndex(x=>x.subject===c.subject&&x.code===c.code);
+    columnsTable.innerHTML+=`<tr><td><b>${c.code}</b></td><td>${c.subject}</td><td>${c.desc||"—"}</td><td>${c.weight}</td><td>${c.semester==="1"?"śródroczne":"drugie półrocze"}</td><td><span class="colorDot" style="background:${c.color}"></span>${c.color}</td><td><button class="danger" onclick="deleteColumn(${realIndex})">Usuń kod</button></td></tr>`;
+  });
+}
+window.deleteColumn=async function(index){
+  let c=db.columns[index]; if(!c)return;
+  if(!confirm("Usunąć kod "+c.code+" i wszystkie oceny w tej kolumnie?"))return;
+  db.students.forEach(s=>delete db.grades["6F|"+c.subject+"|"+s.name+"|"+c.code]);
+  db.columns.splice(index,1); await save(); renderAll();
 }
 function gradeNum(g){
-  if(!g)return null;
-  g=String(g).trim().toLowerCase().replace(",",".");
+  if(!g)return null; g=String(g).trim().toLowerCase().replace(",",".");
   if(["nb","np","zw","zwolniony"].includes(g))return null;
-  const scale={
-    "6":6,
-    "-6":5.67,
-    "5+":5.33,
-    "+5":5.33,
-    "5":5,
-    "-5":4.67,
-    "4+":4.33,
-    "+4":4.33,
-    "4":4,
-    "-4":3.67,
-    "3+":3.33,
-    "+3":3.33,
-    "3":3,
-    "-3":2.67,
-    "2+":2.33,
-    "+2":2.33,
-    "2":2,
-    "1":1
-  };
+  const scale={"6":6,"-6":5.67,"5+":5.33,"+5":5.33,"5":5,"-5":4.67,"4+":4.33,"+4":4.33,"4":4,"-4":3.67,"3+":3.33,"+3":3.33,"3":3,"-3":2.67,"2+":2.33,"+2":2.33,"2":2,"1":1};
   return scale[g] ?? null;
 }
 function avg(st,sem){
   let sum=0,w=0, subject=currentSubject();
   db.columns.filter(c=>c.subject===subject&&c.semester===String(sem)).forEach(c=>{
     let x=db.grades["6F|"+subject+"|"+st+"|"+c.code]; if(!x)return;
-    let n=gradeNum(x.grade); if(n===null)return;
-    sum+=n*c.weight; w+=c.weight;
+    let n=gradeNum(x.grade); if(n===null)return; sum+=n*c.weight; w+=c.weight;
   });
   return w?(sum/w).toFixed(2):"—";
 }
@@ -373,77 +326,16 @@ function finalCell(cls,subject,st,type){
   let v=db.finals[finalKey(cls,subject,st,type)]||"";
   if(roleNow==="student") return `<b>${v||"—"}</b>`;
   let ex=String(v).toLowerCase().includes("zwoln");
-  return `<input class="finalInput ${ex?'exempt':''}" value="${v}" placeholder="np. 5 / bdb / zwolniony" onchange="setFinal('${cls}','${subject}','${st}','${type}',this.value)">`;
+  return `<input class="finalInput ${ex?'exempt':''}" value="${v}" placeholder="np. 5 / zwolniony" onchange="setFinal('${cls}','${subject}','${st}','${type}',this.value)">`;
 }
-function setFinal(cls,subject,st,type,val){db.finals[finalKey(cls,subject,st,type)]=val;save()}
-
-
-function changeTeacherAccount(){
-  let login=teacherLoginEdit.value.trim();
-  let pass=teacherPassEdit.value.trim();
-  if(!login||!pass)return alert("Wpisz nowy login i nowe hasło.");
-  if(db.users.some(u=>u.login===login && u.role!=="teacher"))return alert("Taki login ma już uczeń.");
-  let t=db.users.find(u=>u.role==="teacher");
-  if(!t)return alert("Nie znaleziono konta nauczyciela.");
-  t.login=login;
-  t.password=pass;
-  save();
-  alert("Zmieniono login i hasło nauczyciela.");
-  renderAll();
-}
-function renderAccounts(){
-  if(!document.getElementById("accountsTable"))return;
-  accountsTable.innerHTML="<tr><th>Login</th><th>Hasło</th><th>Rola</th><th>Nazwa</th></tr>";
-  db.users.forEach(u=>accountsTable.innerHTML+=`<tr><td>${u.login}</td><td>${u.password}</td><td>${u.role}</td><td>${u.name}</td></tr>`);
-  let t=db.users.find(u=>u.role==="teacher");
-  if(t){
-    teacherLoginEdit.value=t.login;
-    teacherPassEdit.value=t.password;
-  }
-}
-function renderColumns(){
-  if(!document.getElementById("columnsTable"))return;
-  let subject=currentSubject();
-  let cols=db.columns.filter(c=>c.subject===subject);
-  columnsTable.innerHTML="<tr><th>Kod</th><th>Przedmiot</th><th>Opis</th><th>Waga</th><th>Okres</th><th>Kolor</th><th>Akcja</th></tr>";
-  if(cols.length===0){
-    columnsTable.innerHTML+="<tr><td colspan='7'>Brak kodów dla tego przedmiotu.</td></tr>";
-    return;
-  }
-  cols.forEach(c=>{
-    let realIndex=db.columns.findIndex(x=>x.subject===c.subject&&x.code===c.code);
-    columnsTable.innerHTML+=`<tr>
-      <td><b>${c.code}</b></td>
-      <td>${c.subject}</td>
-      <td>${c.desc||"—"}</td>
-      <td>${c.weight}</td>
-      <td>${c.semester==="1"?"śródroczne":"drugie półrocze"}</td>
-      <td><span class="colorDot" style="background:${c.color}"></span>${c.color}</td>
-      <td><button class="danger" onclick="deleteColumn(${realIndex})">Usuń kod</button></td>
-    </tr>`;
-  });
-}
-function deleteColumn(index){
-  let c=db.columns[index];
-  if(!c)return;
-  if(!confirm("Usunąć kod "+c.code+" i wszystkie oceny w tej kolumnie?"))return;
-  db.students.forEach(s=>{
-    delete db.grades["6F|"+c.subject+"|"+s.name+"|"+c.code];
-  });
-  db.columns.splice(index,1);
-  save();
-  renderAll();
-}
+window.setFinal=async function(cls,subject,st,type,val){db.finals[finalKey(cls,subject,st,type)]=val;await save()}
 
 function renderGrades(){
-  if(currentCls()!=="6F"){
-    gradesTable.innerHTML="<tr><td>Oceny bieżące są tylko w folderze 6F. Dla 4F i 5F kliknij „Oceny śródroczne i roczne”.</td></tr>";
-    return;
-  }
+  if(currentCls()!=="6F"){gradesTable.innerHTML="<tr><td>Oceny bieżące są tylko w folderze 6F.</td></tr>";return}
   let cols=db.columns.filter(c=>c.subject===currentSubject());
   let studs=roleNow==="student"?db.students.filter(s=>s.name===selectedStudent):db.students;
   let html="<tr><th>Nr</th><th>Uczeń</th>";
-  cols.forEach(c=>html+=`<th style="border-top:5px solid ${c.color}" title="${c.desc} | waga ${c.weight} | ${c.semester==='1'?'śródroczne':'drugie półrocze'}"><span class="colorDot" style="background:${c.color}"></span>${c.code}</th>`);
+  cols.forEach(c=>html+=`<th style="border-top:5px solid ${c.color}" title="${c.desc} | waga ${c.weight}"><span class="colorDot" style="background:${c.color}"></span>${c.code}</th>`);
   html+="<th>Średnia śródroczna</th><th>Ocena śródroczna</th><th>Średnia II</th><th>Ocena II</th><th>Ocena roczna</th></tr>";
   studs.forEach(s=>{
     html+=`<tr><td>${s.no}</td><td class="name">${s.name}</td>`;
@@ -451,51 +343,39 @@ function renderGrades(){
       let x=db.grades["6F|"+currentSubject()+"|"+s.name+"|"+c.code]||{};
       html+=`<td onclick="openGrade('${s.name}','${c.code}')" title="${x.desc||c.desc||""}\n${x.date||""}"><span class="badge" style="background:${c.color}">${x.grade||""}</span></td>`;
     });
-    html+=`<td><b>${avg(s.name,1)}</b></td>
-      <td>${finalCell("6F",currentSubject(),s.name,"srodroczna")}</td>
-      <td><b>${avg(s.name,2)}</b></td>
-      <td>${finalCell("6F",currentSubject(),s.name,"semestr2")}</td>
-      <td>${finalCell("6F",currentSubject(),s.name,"roczna")}</td></tr>`;
+    html+=`<td><b>${avg(s.name,1)}</b></td><td>${finalCell("6F",currentSubject(),s.name,"srodroczna")}</td><td><b>${avg(s.name,2)}</b></td><td>${finalCell("6F",currentSubject(),s.name,"semestr2")}</td><td>${finalCell("6F",currentSubject(),s.name,"roczna")}</td></tr>`;
   });
   gradesTable.innerHTML=html;
 }
-
 function renderFinals(){
   let cls=currentCls();
   let studs=roleNow==="student"?db.students.filter(s=>s.name===selectedStudent):db.students;
   let html="<tr><th>Folder klasy</th><th>Uczeń</th><th>Przedmiot</th><th>Ocena śródroczna</th><th>Ocena roczna</th></tr>";
-  studs.forEach(s=>{
-    subjects.forEach(sub=>{
-      html+=`<tr><td>${cls}</td><td class="name">${s.name}</td><td>${sub}</td>
-      <td>${finalCell(cls,sub,s.name,"srodroczna")}</td>
-      <td>${finalCell(cls,sub,s.name,"roczna")}</td></tr>`;
-    });
-  });
+  studs.forEach(s=>subjects.forEach(sub=>html+=`<tr><td>${cls}</td><td class="name">${s.name}</td><td>${sub}</td><td>${finalCell(cls,sub,s.name,"srodroczna")}</td><td>${finalCell(cls,sub,s.name,"roczna")}</td></tr>`));
   finalsTable.innerHTML=html;
 }
-
-function openGrade(st,code){
+window.openGrade=function(st,code){
   if(roleNow!=="teacher"||currentCls()!=="6F")return;
-  editStudent=st;editCode=code;
+  editStudent=st; editCode=code;
   let x=db.grades["6F|"+currentSubject()+"|"+st+"|"+code]||{};
-  gmStudent.value=st;gmCode.value=code;gmGrade.value=x.grade||"";gmDesc.value=x.desc||"";
+  gmStudent.value=st; gmCode.value=code; gmGrade.value=x.grade||""; gmDesc.value=x.desc||"";
   gradeModal.style.display="flex";
 }
-function saveGrade(){
+window.saveGrade=async function(){
   db.grades["6F|"+currentSubject()+"|"+editStudent+"|"+editCode]={grade:gmGrade.value.trim(),desc:gmDesc.value,date:now()};
-  save();renderAll();gradeModal.style.display="none";
+  await save();renderAll();gradeModal.style.display="none";
 }
-function addAttendance(){db.attendance.push({cls:currentCls(),subject:currentSubject(),student:attStudent.value,status:attStatus.value,date:now()});save();renderAll()}
+window.addAttendance=async function(){db.attendance.push({cls:currentCls(),subject:currentSubject(),student:attStudent.value,status:attStatus.value,date:now()});await save();renderAll()}
 function renderAttendance(){
   attendanceTable.innerHTML="<tr><th>Klasa</th><th>Przedmiot</th><th>Uczeń</th><th>Status</th><th>Data</th></tr>";
   db.attendance.filter(a=>(roleNow==="teacher"||a.student===selectedStudent)&&a.cls===currentCls()&&a.subject===currentSubject()).forEach(a=>attendanceTable.innerHTML+=`<tr><td>${a.cls}</td><td>${a.subject}</td><td>${a.student}</td><td>${a.status}</td><td>${a.date}</td></tr>`);
 }
-function addLesson(){db.lessons.push({cls:currentCls(),subject:currentSubject(),topic:lessonTopic.value,desc:lessonDesc.value,date:now()});lessonTopic.value=lessonDesc.value="";save();renderAll()}
+window.addLesson=async function(){db.lessons.push({cls:currentCls(),subject:currentSubject(),topic:lessonTopic.value,desc:lessonDesc.value,date:now()});lessonTopic.value=lessonDesc.value="";await save();renderAll()}
 function renderLessons(){
   lessonsTable.innerHTML="<tr><th>Klasa</th><th>Przedmiot</th><th>Data</th><th>Temat</th><th>Opis</th></tr>";
   db.lessons.filter(l=>l.cls===currentCls()&&l.subject===currentSubject()).forEach(l=>lessonsTable.innerHTML+=`<tr><td>${l.cls}</td><td>${l.subject}</td><td>${l.date}</td><td>${l.topic}</td><td>${l.desc}</td></tr>`);
 }
-function addNote(){db.notes.push({cls:currentCls(),subject:currentSubject(),student:noteStudent.value,type:noteType.value,points:notePoints.value,text:noteText.value,date:now()});notePoints.value=noteText.value="";save();renderAll()}
+window.addNote=async function(){db.notes.push({cls:currentCls(),subject:currentSubject(),student:noteStudent.value,type:noteType.value,points:notePoints.value,text:noteText.value,date:now()});notePoints.value=noteText.value="";await save();renderAll()}
 function renderNotes(){
   notesTable.innerHTML="<tr><th>Klasa</th><th>Przedmiot</th><th>Uczeń</th><th>Typ</th><th>Punkty</th><th>Treść</th><th>Data</th></tr>";
   db.notes.filter(n=>(roleNow==="teacher"||n.student===selectedStudent)&&n.cls===currentCls()&&n.subject===currentSubject()).forEach(n=>notesTable.innerHTML+=`<tr><td>${n.cls}</td><td>${n.subject}</td><td>${n.student}</td><td>${n.type}</td><td>${n.points}</td><td>${n.text}</td><td>${n.date}</td></tr>`);
