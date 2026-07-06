@@ -99,6 +99,11 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
 .mailItem.unread{background:#fff8df;border-left:5px solid #d9a400;font-weight:bold}
 .mailMeta{font-size:11px;color:#555;margin-top:4px}
 .mailBodyView{white-space:pre-wrap;border:1px solid #d7dde5;background:#fafafa;padding:10px;margin-top:8px}
+
+.statusDone{color:#0a7a20;font-weight:bold}
+.statusNo{color:#b00020;font-weight:bold}
+.realized{color:#0a5fb4;font-weight:bold}
+.planned{color:#9a6a00;font-weight:bold}
 </style>
 </head>
 <body>
@@ -188,6 +193,10 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
           <input id="lessonDate" type="date">
           <input id="lessonNumber" placeholder="Nr lekcji, np. 1">
           <input id="lessonTopic" placeholder="Temat lekcji">
+          <select id="lessonHeld"><option value="tak">odbyło się: tak</option><option value="nie">odbyło się: nie</option></select>
+        </div>
+        <div class="grid">
+          <select id="lessonRealization"><option value="zrealizowano">realizacja: zrealizowano</option><option value="planowano">realizacja: planowano</option></select>
           <button class="primary" onclick="addLesson()">Zapisz temat</button>
         </div>
         <textarea id="lessonDesc" placeholder="Opis lekcji / praca domowa" rows="4"></textarea></div></div>
@@ -273,7 +282,7 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
     <input id="editLessonIndex" type="hidden">
     <label>Data</label><input id="editLessonDate" type="date">
     <label>Nr lekcji</label><input id="editLessonNumber">
-    <label>Temat</label><input id="editLessonTopic">
+    <label>Temat</label><input id="editLessonTopic"><label>Czy lekcja się odbyła?</label><select id="editLessonHeld"><option value="tak">tak</option><option value="nie">nie</option></select><label>Realizacja lekcji</label><select id="editLessonRealization"><option value="zrealizowano">zrealizowano</option><option value="planowano">planowano</option></select>
     <label>Opis / praca domowa</label><textarea id="editLessonDesc" rows="4"></textarea>
     <button class="primary" onclick="saveLessonEdit()">Zapisz zmiany</button>
     <button onclick="lessonModal.style.display='none'">Anuluj</button>
@@ -435,19 +444,25 @@ const seededTopics=[
 ];
 
 const seededColumns=[
-  ["A1",1,"#f3c13a"],["PL1",1,"#ffffff"],["A2",1,"#f3c13a"],["S1",3,"#ff3333"],["A3",1,"#f3c13a"],
-  ["K1",2,"#77aa55"],["A4",1,"#f3c13a"],["K2",2,"#d6bd48"],["S2",3,"#ff3333"],["PL2",2,"#a020f0"],
-  ["A5",1,"#2f74ff"],["ODP1",1,"#2f74ff"],["ODP2",1,"#2f74ff"],["A6",1,"#f3c13a"],["K3",2,"#77aa55"],
-  ["S3",3,"#ff3333"],["A7",1,"#111111"]
+  ["A1",1,"#f3c13a"],["PL1",1,"#ffffff"],["A2",1,"#f3c13a"],["S1",3,"#ff3333"],
+  ["A3",1,"#f3c13a"],["K1",2,"#77aa55"],["A4",1,"#f3c13a"],["K2",2,"#d6bd48"],
+  ["S2",3,"#ff3333"],["PL2",2,"#a020f0"],["A5",1,"#2f74ff"],["ODP1",1,"#2f74ff"],
+  ["ODP2",1,"#2f74ff"],["A6",1,"#f3c13a"],["K3",2,"#77aa55"],["S3",3,"#ff3333"]
 ];
 
 const seededGrades={
-  "Kowalski Czesław":{"A1":"6","PL1":"5","A2":"6","S1":"5-","A3":"6","K1":"5","A4":"6","K2":"6","S2":"5+","PL2":"6","A5":"6","ODP1":"6","ODP2":"6","A6":"6","K3":"6","S3":"5+","A7":"+"},
-  "Kowalski Rafał Paweł":{"A1":"6","PL1":"5+","A2":"6","S1":"5-","A3":"6","K1":"5+","A4":"+","K2":"6","S2":"nb","PL2":"","A5":"","ODP1":"6","ODP2":"","A6":"","K3":"nb","S3":"nb","A7":""}
+  "Kowalski Czesław":{
+    "A1":"6","PL1":"5","A2":"6","S1":"5-","A3":"6","K1":"5","A4":"6","K2":"6",
+    "S2":"5+","PL2":"6","A5":"6","ODP1":"6","ODP2":"6","A6":"6","K3":"6","S3":"5+"
+  },
+  "Kowalski Rafał Paweł":{
+    "A1":"6","PL1":"5+","A2":"6","S1":"5-","A3":"6","K1":"5+","A4":"+","K2":"6",
+    "S2":"nb","PL2":"","A5":"","ODP1":"6","ODP2":"","A6":"","K3":"nb","S3":"nb"
+  }
 };
 
 function seedMathClass6IfNeeded(){
-  if(db.seedMathClass6_2026)return false;
+  if(db.seedMathClass6_2026_v2)return false;
   db.students=[
     {no:"1",name:"Kowalski Czesław",email:"czeskowa34@edudziennik.local",password:"",parentEmail:"rodzic.czeslaw@example.com"},
     {no:"2",name:"Kowalski Rafał Paweł",email:"rafkowa12@edudziennik.local",password:"",parentEmail:"rekin123@interia.pl"}
@@ -465,7 +480,7 @@ function seedMathClass6IfNeeded(){
   });
   db.lessons=(db.lessons||[]).filter(l=>!(l.cls==="6F"&&l.subject==="Matematyka"));
   seededTopics.forEach(([date,topic],idx)=>{
-    db.lessons.push({cls:"6F",subject:"Matematyka",topic,desc:"",lessonNo:String(idx+1),date});
+    db.lessons.push({cls:"6F",subject:"Matematyka",topic,desc:"",lessonNo:String(idx+1),date,held:"tak",realization:"zrealizowano"});
   });
   db.grades=db.grades||{};
   Object.keys(seededGrades).forEach(student=>{
@@ -475,7 +490,7 @@ function seedMathClass6IfNeeded(){
       }
     });
   });
-  db.seedMathClass6_2026=true;
+  db.seedMathClass6_2026_v2=true;
   selectedStudent="Kowalski Czesław";
   return true;
 }
@@ -806,14 +821,15 @@ window.showAvgDetails=function(st,sem){
 
 function gradeColorClass(grade, code){
   grade=String(grade||"").trim();
-  if(["S1","S2","S3"].includes(code) || grade==="5-" || grade==="nb") return "g-red";
-  if(["A5","ODP1","ODP2","PL2"].includes(code) || grade==="6") return code==="PL2" ? "g-purple" : "g-blue";
-  if(["K1","K3"].includes(code) || grade==="5" || grade==="5+") return "g-green";
+  if(["S1","S2","S3"].includes(code) || grade==="5-" || grade==="5+" && code==="S2" || grade==="nb") return "g-red";
+  if(["A5","ODP1","ODP2"].includes(code) || (grade==="6" && ["A5","ODP1","ODP2"].includes(code))) return "g-blue";
+  if(code==="PL2") return "g-purple";
+  if(["K1","K3"].includes(code) || (grade==="5" && code==="K1") || (grade==="5+" && code==="K1")) return "g-green";
   return "g-black";
 }
 function gradeBgClass(code, grade){
   if(["A1","A2","A3","A4","A6"].includes(code)) return "bg-yellow";
-  if(code==="K2" || code==="S2") return "bg-yellow";
+  if(["S1","K1","K2","S2"].includes(code)) return "bg-yellow";
   if(String(grade||"").trim()==="+") return "bg-yellow";
   return "";
 }
@@ -941,9 +957,13 @@ window.addLesson=async function(){
     topic:lessonTopic.value.trim(),
     desc:lessonDesc.value,
     lessonNo:lessonNumber.value.trim(),
-    date:lessonDate.value || dateOnly()
+    date:lessonDate.value || dateOnly(),
+    held:lessonHeld.value || "tak",
+    realization:lessonRealization.value || "zrealizowano"
   });
   lessonTopic.value=lessonDesc.value=lessonNumber.value="";
+  lessonHeld.value="tak";
+  lessonRealization.value="zrealizowano";
   lessonDate.value=dateOnly();
   await save();renderAll();
 }
@@ -953,6 +973,8 @@ window.editLesson=function(i){
   editLessonDate.value=(l.date||dateOnly()).includes("-") ? l.date : dateOnly();
   editLessonNumber.value=l.lessonNo||"";
   editLessonTopic.value=l.topic||"";
+  editLessonHeld.value=l.held||"tak";
+  editLessonRealization.value=l.realization||"zrealizowano";
   editLessonDesc.value=l.desc||"";
   lessonModal.style.display="flex";
 }
@@ -962,6 +984,8 @@ window.saveLessonEdit=async function(){
   db.lessons[i].date=editLessonDate.value || dateOnly();
   db.lessons[i].lessonNo=editLessonNumber.value.trim();
   db.lessons[i].topic=editLessonTopic.value.trim();
+  db.lessons[i].held=editLessonHeld.value||"tak";
+  db.lessons[i].realization=editLessonRealization.value||"zrealizowano";
   db.lessons[i].desc=editLessonDesc.value;
   await save();
   lessonModal.style.display="none";
@@ -973,15 +997,19 @@ window.deleteLesson=async function(i){
   await save();renderAll();
 }
 function renderLessons(){
-  lessonsTable.innerHTML="<tr><th>Klasa</th><th>Przedmiot</th><th>Data</th><th>Nr lekcji</th><th>Temat</th><th>Opis</th><th class='teacherOnly'>Akcja</th></tr>";
+  lessonsTable.innerHTML="<tr><th>Klasa</th><th>Przedmiot</th><th>Data</th><th>Nr lekcji</th><th>Temat</th><th>Czy się odbyło?</th><th>Realizacja</th><th>Opis</th><th class='teacherOnly'>Akcja</th></tr>";
   db.lessons.filter(l=>l.cls===currentCls()&&l.subject===currentSubject()).forEach(l=>{
     let i=db.lessons.indexOf(l);
+    let held=l.held||"tak";
+    let realization=l.realization||"zrealizowano";
     lessonsTable.innerHTML+=`<tr>
       <td>${l.cls}</td>
       <td>${l.subject}</td>
       <td>${formatDatePL(l.date)}</td>
       <td>${l.lessonNo||"—"}</td>
       <td>${l.topic}</td>
+      <td class="${held==='tak'?'statusDone':'statusNo'}">${held}</td>
+      <td class="${realization==='zrealizowano'?'realized':'planned'}">${realization}</td>
       <td>${l.desc||"—"}</td>
       <td class="teacherOnly"><button onclick="editLesson(${i})">Edytuj</button> <button class="danger" onclick="deleteLesson(${i})">Usuń</button></td>
     </tr>`;
