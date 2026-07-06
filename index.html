@@ -238,6 +238,10 @@ const defaultData={
 let db=structuredClone(defaultData);
 let currentUser=null, roleNow="teacher", selectedStudent="Dominik Marcin", editStudent="", editCode="", unsub=null;
 
+// DOM element references for module script
+
+
+
 function initSubjects(){lessonSelect.innerHTML=subjects.map(s=>`<option>${s}</option>`).join(""); lessonSelect.value="Matematyka"}
 function now(){let d=new Date();return d.toLocaleDateString("pl-PL")+" "+d.toLocaleTimeString("pl-PL",{hour:"2-digit",minute:"2-digit"})}
 function currentSubject(){return lessonSelect.value}
@@ -262,8 +266,8 @@ onAuthStateChanged(auth, async (user)=>{
     db=structuredClone(defaultData);
   }else {
     db = {...structuredClone(defaultData), ...snap.data()};
-    if(!db.users) db.users = defaultData.users;
-    if(!db.students) db.students = defaultData.students;
+    if(!db.users || !db.users.some(u=>u.email==="remkowa35@edudziennik.local")) db.users = defaultData.users;
+    if(!db.students || !db.students.some(s=>s.email==="czeskowa34@edudziennik.local")) db.students = defaultData.students;
     if(!db.columns) db.columns = [];
     if(!db.grades) db.grades = {};
     if(!db.finals) db.finals = {};
@@ -272,11 +276,12 @@ onAuthStateChanged(auth, async (user)=>{
     if(!db.notes) db.notes = [];
     if(!db.exams) db.exams = [];
     if(!db.homework) db.homework = [];
+    await setDoc(dataRef, db, {merge:false});
   }
 
   currentUser=db.users.find(u=>u.email===user.email);
   if(!currentUser){
-    alert("To konto nie jest wpisane w dzienniku.");
+    alert("To konto jest w Firebase, ale nie jest wpisane w dzienniku. Wgram poprawione konta i spróbuj ponownie.");
     await signOut(auth);
     return;
   }
