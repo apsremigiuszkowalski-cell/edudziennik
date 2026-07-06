@@ -214,9 +214,9 @@ const firebaseConfig = {
   measurementId: "G-LH3FEXEZW8"
 };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const fs = getFirestore(app);
+const firebaseApp = initializeApp(firebaseConfig);
+const auth = getAuth(firebaseApp);
+const fs = getFirestore(firebaseApp);
 const dataRef = doc(fs, "edudziennik", "main");
 
 const subjects=["Język polski","Język angielski","Język niemiecki","Muzyka","Plastyka","Historia","Przyroda","Geografia","Biologia","Chemia","Fizyka","Matematyka","Informatyka","Technika","Wychowanie fizyczne"];
@@ -239,8 +239,73 @@ let db=structuredClone(defaultData);
 let currentUser=null, roleNow="teacher", selectedStudent="Dominik Marcin", editStudent="", editCode="", unsub=null;
 
 // DOM element references for module script
-
-
+const appEl = document.getElementById("app");
+const loginBox = document.getElementById("loginBox");
+const loginInput = document.getElementById("loginInput");
+const passInput = document.getElementById("passInput");
+const loginError = document.getElementById("loginError");
+const roleLabel = document.getElementById("roleLabel");
+const classSelect = document.getElementById("classSelect");
+const lessonSelect = document.getElementById("lessonSelect");
+const who = document.getElementById("who");
+const tree = document.getElementById("tree");
+const start = document.getElementById("start");
+const hello = document.getElementById("hello");
+const currentClass = document.getElementById("currentClass");
+const currentLesson = document.getElementById("currentLesson");
+const currentStudentText = document.getElementById("currentStudentText");
+const uczniowie = document.getElementById("uczniowie");
+const studentNo = document.getElementById("studentNo");
+const studentName = document.getElementById("studentName");
+const studentEmailNew = document.getElementById("studentEmailNew");
+const studentPasswordNew = document.getElementById("studentPasswordNew");
+const studentSearch = document.getElementById("studentSearch");
+const studentsTable = document.getElementById("studentsTable");
+const konta = document.getElementById("konta");
+const accountsTable = document.getElementById("accountsTable");
+const oceny = document.getElementById("oceny");
+const colCode = document.getElementById("colCode");
+const colDesc = document.getElementById("colDesc");
+const colWeight = document.getElementById("colWeight");
+const colSemester = document.getElementById("colSemester");
+const colColor = document.getElementById("colColor");
+const columnsTable = document.getElementById("columnsTable");
+const gradesTable = document.getElementById("gradesTable");
+const koncowe = document.getElementById("koncowe");
+const finalsTable = document.getElementById("finalsTable");
+const frekwencja = document.getElementById("frekwencja");
+const attStudent = document.getElementById("attStudent");
+const attStatus = document.getElementById("attStatus");
+const attendanceTable = document.getElementById("attendanceTable");
+const opis = document.getElementById("opis");
+const lessonTopic = document.getElementById("lessonTopic");
+const lessonDesc = document.getElementById("lessonDesc");
+const lessonsTable = document.getElementById("lessonsTable");
+const uwagi = document.getElementById("uwagi");
+const noteStudent = document.getElementById("noteStudent");
+const noteType = document.getElementById("noteType");
+const notePoints = document.getElementById("notePoints");
+const noteText = document.getElementById("noteText");
+const notesTable = document.getElementById("notesTable");
+const sprawdziany = document.getElementById("sprawdziany");
+const examTitle = document.getElementById("examTitle");
+const examDate = document.getElementById("examDate");
+const examWeight = document.getElementById("examWeight");
+const examDesc = document.getElementById("examDesc");
+const examsTable = document.getElementById("examsTable");
+const zadania = document.getElementById("zadania");
+const hwTitle = document.getElementById("hwTitle");
+const hwDue = document.getElementById("hwDue");
+const hwDesc = document.getElementById("hwDesc");
+const homeworkTable = document.getElementById("homeworkTable");
+const karta = document.getElementById("karta");
+const reportStudent = document.getElementById("reportStudent");
+const reportBox = document.getElementById("reportBox");
+const gradeModal = document.getElementById("gradeModal");
+const gmStudent = document.getElementById("gmStudent");
+const gmCode = document.getElementById("gmCode");
+const gmGrade = document.getElementById("gmGrade");
+const gmDesc = document.getElementById("gmDesc");
 
 function initSubjects(){lessonSelect.innerHTML=subjects.map(s=>`<option>${s}</option>`).join(""); lessonSelect.value="Matematyka"}
 function now(){let d=new Date();return d.toLocaleDateString("pl-PL")+" "+d.toLocaleTimeString("pl-PL",{hour:"2-digit",minute:"2-digit"})}
@@ -266,8 +331,8 @@ onAuthStateChanged(auth, async (user)=>{
     db=structuredClone(defaultData);
   }else {
     db = {...structuredClone(defaultData), ...snap.data()};
-    if(!db.users || !db.users.some(u=>u.email==="remkowa35@edudziennik.local")) db.users = defaultData.users;
-    if(!db.students || !db.students.some(s=>s.email==="czeskowa34@edudziennik.local")) db.students = defaultData.students;
+    db.users = defaultData.users;
+    db.students = defaultData.students;
     if(!db.columns) db.columns = [];
     if(!db.grades) db.grades = {};
     if(!db.finals) db.finals = {};
@@ -287,7 +352,7 @@ onAuthStateChanged(auth, async (user)=>{
   }
   roleNow=currentUser.role;
   selectedStudent=roleNow==="student"?currentUser.name:(db.students[0]?.name||"");
-  loginBox.style.display="none"; app.style.display="block";
+  loginBox.style.display="none"; appEl.style.display="block";
   roleLabel.innerText=roleNow==="teacher"?"Nauczyciel":"Uczeń";
   who.innerText=currentUser.name;
   hello.innerHTML=roleNow==="teacher"?"Witaj, <b>nauczycielu</b>.":"Witaj, <b>"+currentUser.name+"</b>.";
