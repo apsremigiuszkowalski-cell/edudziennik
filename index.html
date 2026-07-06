@@ -61,6 +61,9 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
   <div class="tool" onclick="show('opis')"><div class="ico green"></div><div>Opis lekcji</div></div>
   <div class="tool" onclick="show('frekwencja')"><div class="ico blue"></div><div>Frekwencja</div></div>
   <div class="tool" onclick="show('uwagi')"><div class="ico red"></div><div>Uwagi</div></div>
+  <div class="tool" onclick="show('sprawdziany')"><div class="ico blue"></div><div>Sprawdziany</div></div>
+  <div class="tool" onclick="show('zadania')"><div class="ico green"></div><div>Zadania</div></div>
+  <div class="tool" onclick="show('karta')"><div class="ico"></div><div>Karta ocen</div></div>
   <div class="tool teacherOnly" onclick="show('uczniowie')"><div class="ico blue"></div><div>Uczniowie</div></div>
   <div class="tool teacherOnly" onclick="show('konta')"><div class="ico green"></div><div>Konta</div></div>
 </div>
@@ -90,7 +93,10 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
         <button class="primary" onclick="addStudent()">Dodaj ucznia do dziennika</button>
         <p class="small">Konto Firebase ucznia trzeba utworzyć w Firebase Authentication.</p>
       </div></div>
-      <div class="card"><h2>Lista uczniów</h2><div class="body"><table id="studentsTable"></table></div></div>
+      <div class="card"><h2>Lista uczniów</h2><div class="body">
+        <input id="studentSearch" placeholder="Szukaj ucznia..." oninput="renderStudents()" style="width:100%;margin-bottom:8px">
+        <table id="studentsTable"></table>
+      </div></div>
     </div>
 
     <div id="konta" class="page hidden">
@@ -126,6 +132,43 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
       <div class="card teacherOnly"><h2>Dodaj uwagę</h2><div class="body"><div class="grid"><select id="noteStudent"></select><select id="noteType"><option>pozytywna</option><option>negatywna</option><option>informacyjna</option></select><input id="notePoints" placeholder="Punkty"></div><textarea id="noteText" placeholder="Treść uwagi" rows="3"></textarea><button class="primary" onclick="addNote()">Dodaj</button></div></div>
       <div class="card"><h2>Uwagi</h2><div class="body"><table id="notesTable"></table></div></div>
     </div>
+  
+    <div id="sprawdziany" class="page hidden">
+      <div class="card teacherOnly"><h2>Dodaj sprawdzian</h2><div class="body">
+        <div class="grid">
+          <input id="examTitle" placeholder="Nazwa, np. Sprawdzian z ułamków">
+          <input id="examDate" type="date">
+          <select id="examWeight"><option value="1">waga 1</option><option value="2">waga 2</option><option value="3" selected>waga 3</option><option value="4">waga 4</option><option value="5">waga 5</option></select>
+          <button class="primary" onclick="addExam()">Dodaj sprawdzian</button>
+        </div>
+        <textarea id="examDesc" placeholder="Opis / zakres materiału" rows="3"></textarea>
+      </div></div>
+      <div class="card"><h2>Sprawdziany</h2><div class="body"><table id="examsTable"></table></div></div>
+    </div>
+
+    <div id="zadania" class="page hidden">
+      <div class="card teacherOnly"><h2>Dodaj zadanie domowe</h2><div class="body">
+        <div class="grid">
+          <input id="hwTitle" placeholder="Tytuł zadania">
+          <input id="hwDue" type="date">
+          <button class="primary" onclick="addHomework()">Dodaj zadanie</button>
+        </div>
+        <textarea id="hwDesc" placeholder="Treść zadania domowego" rows="3"></textarea>
+      </div></div>
+      <div class="card"><h2>Zadania domowe</h2><div class="body"><table id="homeworkTable"></table></div></div>
+    </div>
+
+    <div id="karta" class="page hidden">
+      <div class="card"><h2>Karta ocen / wydruk</h2><div class="body">
+        <div class="grid teacherOnly">
+          <select id="reportStudent"></select>
+          <button class="primary" onclick="renderReport()">Pokaż kartę</button>
+          <button onclick="window.print()">Drukuj</button>
+        </div>
+        <div id="reportBox"></div>
+      </div></div>
+    </div>
+
   </main>
 
   <aside class="panel">
@@ -137,6 +180,9 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
       <div class="menuItem" onclick="show('opis')">Opis lekcji</div>
       <div class="menuItem" onclick="show('frekwencja')">Frekwencja</div>
       <div class="menuItem" onclick="show('uwagi')">Uwagi</div>
+      <div class="menuItem" onclick="show('sprawdziany')">Sprawdziany</div>
+      <div class="menuItem" onclick="show('zadania')">Zadania domowe</div>
+      <div class="menuItem" onclick="show('karta')">Karta ocen / wydruk</div>
       <div class="menuItem teacherOnly" onclick="show('uczniowie')">Uczniowie</div>
       <div class="menuItem teacherOnly" onclick="show('konta')">Konta</div>
     </div>
@@ -186,7 +232,7 @@ const defaultData={
     {no:"1",name:"Dominik Marcin",email:"czeskowa34@edudziennik.local",password:"1234"},
     {no:"2",name:"Rebeka Gabriela",email:"rafkowa12@edudziennik.local",password:"1234"}
   ],
-  columns:[],grades:{},finals:{},attendance:[],lessons:[],notes:[]
+  columns:[],grades:{},finals:{},attendance:[],lessons:[],notes:[],exams:[],homework:[]
 };
 
 let db=structuredClone(defaultData);
@@ -235,7 +281,7 @@ onAuthStateChanged(auth, async (user)=>{
 
 window.show=function(id){document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));document.getElementById(id).classList.remove("hidden");renderAll()}
 window.chooseClass=function(c){classSelect.value=c; show("koncowe"); renderAll()}
-window.chooseStudent=function(n){if(roleNow==="teacher"){selectedStudent=n;renderAll()}}
+window.chooseStudent=function(n){if(roleNow==="teacher"){selectedStudent=n;if(document.getElementById("reportBox")) reportBox.innerHTML="";renderAll()}}
 
 function renderTree(){
   let html=`<div class="treeItem school">${db.school}</div>`;
@@ -269,9 +315,36 @@ window.renameStudent=async function(i){
   if(selectedStudent===old)selectedStudent=n;
   await save();renderAll();
 }
+
+function ensureArrays(){
+  if(!db.exams) db.exams=[];
+  if(!db.homework) db.homework=[];
+  if(!db.notes) db.notes=[];
+  if(!db.lessons) db.lessons=[];
+  if(!db.attendance) db.attendance=[];
+  if(!db.students) db.students=[];
+  if(!db.users) db.users=[];
+  if(!db.columns) db.columns=[];
+  if(!db.grades) db.grades={};
+  if(!db.finals) db.finals={};
+}
+
 function renderStudents(){
+  let q=(document.getElementById("studentSearch")?.value||"").toLowerCase();
   studentsTable.innerHTML="<tr><th>Nr</th><th>Uczeń</th><th>Aktualna klasa</th><th>Email</th><th>Hasło info</th><th class='teacherOnly'>Akcja</th></tr>";
-  db.students.forEach((s,i)=>studentsTable.innerHTML+=`<tr><td>${s.no}</td><td>${s.name}</td><td>6F</td><td>${s.email}</td><td>${s.password||"—"}</td><td class="teacherOnly"><button onclick="renameStudent(${i})">Edytuj</button> <button class="danger" onclick="deleteStudent(${i})">Usuń</button></td></tr>`);
+  db.students
+    .filter(s=>!q || s.name.toLowerCase().includes(q) || String(s.no).includes(q))
+    .forEach((s,i)=>{
+      let realIndex=db.students.findIndex(x=>x.email===s.email);
+      studentsTable.innerHTML+=`<tr>
+        <td>${s.no}</td>
+        <td class="name" onclick="chooseStudent('${s.name}')">${s.name}</td>
+        <td>6F</td>
+        <td>${s.email}</td>
+        <td>${s.password||"—"}</td>
+        <td class="teacherOnly"><button onclick="renameStudent(${realIndex})">Edytuj</button> <button class="danger" onclick="deleteStudent(${realIndex})">Usuń</button></td>
+      </tr>`;
+    });
 }
 function renderAccounts(){
   accountsTable.innerHTML="<tr><th>Email</th><th>Rola</th><th>Nazwa</th></tr>";
@@ -371,13 +444,78 @@ function renderLessons(){
   db.lessons.filter(l=>l.cls===currentCls()&&l.subject===currentSubject()).forEach(l=>lessonsTable.innerHTML+=`<tr><td>${l.cls}</td><td>${l.subject}</td><td>${l.date}</td><td>${l.topic}</td><td>${l.desc}</td></tr>`);
 }
 window.addNote=async function(){db.notes.push({cls:currentCls(),subject:currentSubject(),student:noteStudent.value,type:noteType.value,points:notePoints.value,text:noteText.value,date:now()});notePoints.value=noteText.value="";await save();renderAll()}
+
+window.addExam=async function(){
+  if(!examTitle.value.trim())return alert("Wpisz nazwę sprawdzianu.");
+  db.exams.push({cls:currentCls(),subject:currentSubject(),title:examTitle.value.trim(),date:examDate.value,weight:examWeight.value,desc:examDesc.value,dateAdded:now()});
+  examTitle.value=examDate.value=examDesc.value="";
+  await save();renderAll();
+}
+window.deleteExam=async function(i){
+  if(!confirm("Usunąć sprawdzian?"))return;
+  db.exams.splice(i,1); await save(); renderAll();
+}
+function renderExams(){
+  if(!document.getElementById("examsTable"))return;
+  examsTable.innerHTML="<tr><th>Klasa</th><th>Przedmiot</th><th>Data</th><th>Nazwa</th><th>Waga</th><th>Opis</th><th class='teacherOnly'>Akcja</th></tr>";
+  db.exams.filter(e=>e.cls===currentCls()&&e.subject===currentSubject()).forEach((e,i)=>{
+    let realIndex=db.exams.indexOf(e);
+    examsTable.innerHTML+=`<tr><td>${e.cls}</td><td>${e.subject}</td><td>${e.date||"—"}</td><td>${e.title}</td><td>${e.weight}</td><td>${e.desc||"—"}</td><td class="teacherOnly"><button class="danger" onclick="deleteExam(${realIndex})">Usuń</button></td></tr>`;
+  });
+}
+window.addHomework=async function(){
+  if(!hwTitle.value.trim())return alert("Wpisz tytuł zadania.");
+  db.homework.push({cls:currentCls(),subject:currentSubject(),title:hwTitle.value.trim(),due:hwDue.value,desc:hwDesc.value,dateAdded:now()});
+  hwTitle.value=hwDue.value=hwDesc.value="";
+  await save();renderAll();
+}
+window.deleteHomework=async function(i){
+  if(!confirm("Usunąć zadanie?"))return;
+  db.homework.splice(i,1); await save(); renderAll();
+}
+function renderHomework(){
+  if(!document.getElementById("homeworkTable"))return;
+  homeworkTable.innerHTML="<tr><th>Klasa</th><th>Przedmiot</th><th>Termin</th><th>Tytuł</th><th>Treść</th><th class='teacherOnly'>Akcja</th></tr>";
+  db.homework.filter(h=>h.cls===currentCls()&&h.subject===currentSubject()).forEach((h,i)=>{
+    let realIndex=db.homework.indexOf(h);
+    homeworkTable.innerHTML+=`<tr><td>${h.cls}</td><td>${h.subject}</td><td>${h.due||"—"}</td><td>${h.title}</td><td>${h.desc||"—"}</td><td class="teacherOnly"><button class="danger" onclick="deleteHomework(${realIndex})">Usuń</button></td></tr>`;
+  });
+}
+function renderReportSelect(){
+  if(!document.getElementById("reportStudent"))return;
+  reportStudent.innerHTML=db.students.map(s=>`<option ${s.name===selectedStudent?'selected':''}>${s.name}</option>`).join("");
+}
+window.renderReport=function(){
+  let st=roleNow==="student"?selectedStudent:(reportStudent.value||selectedStudent);
+  let html=`<h2>Karta ocen: ${st}</h2><p><b>Aktualna klasa:</b> 6F</p>`;
+  html+=`<h3>Oceny końcowe — folder ${currentCls()}</h3>`;
+  html+="<table><tr><th>Przedmiot</th><th>Śródroczna</th><th>Roczna</th></tr>";
+  subjects.forEach(sub=>{
+    html+=`<tr><td>${sub}</td><td>${db.finals[finalKey(currentCls(),sub,st,"srodroczna")]||"—"}</td><td>${db.finals[finalKey(currentCls(),sub,st,"roczna")]||"—"}</td></tr>`;
+  });
+  html+="</table>";
+  html+=`<h3>Oceny bieżące — ${currentSubject()}</h3>`;
+  html+="<table><tr><th>Kod</th><th>Ocena</th><th>Opis</th><th>Data</th></tr>";
+  db.columns.filter(c=>c.subject===currentSubject()).forEach(c=>{
+    let x=db.grades["6F|"+currentSubject()+"|"+st+"|"+c.code]||{};
+    html+=`<tr><td>${c.code}</td><td>${x.grade||"—"}</td><td>${x.desc||c.desc||"—"}</td><td>${x.date||"—"}</td></tr>`;
+  });
+  html+="</table>";
+  reportBox.innerHTML=html;
+}
+function renderReportAuto(){
+  renderReportSelect();
+  if(document.getElementById("reportBox") && reportBox.innerHTML.trim()==="") renderReport();
+}
+
 function renderNotes(){
   notesTable.innerHTML="<tr><th>Klasa</th><th>Przedmiot</th><th>Uczeń</th><th>Typ</th><th>Punkty</th><th>Treść</th><th>Data</th></tr>";
   db.notes.filter(n=>(roleNow==="teacher"||n.student===selectedStudent)&&n.cls===currentCls()&&n.subject===currentSubject()).forEach(n=>notesTable.innerHTML+=`<tr><td>${n.cls}</td><td>${n.subject}</td><td>${n.student}</td><td>${n.type}</td><td>${n.points}</td><td>${n.text}</td><td>${n.date}</td></tr>`);
 }
 function renderAll(){
+  ensureArrays();
   currentClass.innerText=currentCls(); currentLesson.innerText=currentSubject(); currentStudentText.innerText=selectedStudent||"—";
-  renderTree();renderSelects();renderStudents();renderAccounts();renderColumns();renderGrades();renderFinals();renderAttendance();renderLessons();renderNotes();
+  renderTree();renderSelects();renderStudents();renderAccounts();renderColumns();renderGrades();renderFinals();renderAttendance();renderLessons();renderNotes();renderExams();renderHomework();renderReportAuto();
   document.querySelectorAll(".teacherOnly").forEach(e=>e.style.display=roleNow==="teacher"?"":"none");
 }
 initSubjects();
