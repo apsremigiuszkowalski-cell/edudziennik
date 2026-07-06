@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-<!-- CZYSTA WERSJA: jedno liczenie średniej, bez konfliktów, średnia Czesława powinna wynosić 5.58 -->
+<!-- WERSJA 602: naprawiona średnia + reset danych matematyki w Firebase -->
 <!-- WERSJA FINAL SREDNIA 5.58: nb/puste/+/- nie liczone; 5+=5.33; 5-=4.67 -->
 <meta charset="UTF-8">
 <!-- Średnia: prawdziwe oceny tylko, nb/puste/+/- pomijane; 5+=5.33, 5-=4.67 -->
@@ -323,7 +323,72 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, signOut, 
+/* ===== JEDNORAZOWA NAPRAWA DANYCH MATEMATYKI — WERSJA 602 ===== */
+function fixMathData602(){
+  if(!db) return false;
+  if(db.mathDataVersion === "602") return false;
+
+  db.columns = db.columns || [];
+  db.grades = db.grades || {};
+  db.students = [
+    {no:"1",name:"Kowalski Czesław",email:"czeskowa34@edudziennik.local",password:"",parentEmail:"rodzic.czeslaw@example.com"},
+    {no:"2",name:"Kowalski Rafał Paweł",email:"rafkowa12@edudziennik.local",password:"",parentEmail:"rekin123@interia.pl"}
+  ];
+
+  const correctColumns = [
+    ["A1",1,"#f3c13a"],["PL1",1,"#ffffff"],["A2",1,"#f3c13a"],["S1",3,"#ff3333"],
+    ["A3",1,"#f3c13a"],["K1",2,"#77aa55"],["A4",1,"#f3c13a"],["K2",2,"#d6bd48"],
+    ["S2",3,"#ff3333"],["PL2",2,"#a020f0"],["A5",1,"#2f74ff"],["ODP1",1,"#2f74ff"],
+    ["ODP2",1,"#2f74ff"],["A6",1,"#f3c13a"],["K3",2,"#77aa55"],["S3",3,"#ff3333"]
+  ];
+
+  db.columns = db.columns.filter(c => c.subject !== "Matematyka");
+  correctColumns.forEach(([code, weight, color]) => {
+    db.columns.push({
+      subject:"Matematyka",
+      code,
+      desc:code,
+      weight:Number(weight),
+      semester:"1",
+      color
+    });
+  });
+
+  Object.keys(db.grades).forEach(k => {
+    if(k.startsWith("6F|Matematyka|Kowalski Czesław|") || k.startsWith("6F|Matematyka|Kowalski Rafał Paweł|")) {
+      delete db.grades[k];
+    }
+  });
+
+  const correctGrades = {
+    "Kowalski Czesław":{
+      "A1":"6","PL1":"5","A2":"6","S1":"5-","A3":"6","K1":"5","A4":"6","K2":"6",
+      "S2":"5+","PL2":"6","A5":"6","ODP1":"6","ODP2":"6","A6":"6","K3":"6","S3":"5+"
+    },
+    "Kowalski Rafał Paweł":{
+      "A1":"6","PL1":"5+","A2":"6","S1":"5-","A3":"6","K1":"5+","A4":"+","K2":"6",
+      "S2":"nb","PL2":"","A5":"","ODP1":"6","ODP2":"","A6":"","K3":"nb","S3":"nb"
+    }
+  };
+
+  Object.keys(correctGrades).forEach(st => {
+    Object.entries(correctGrades[st]).forEach(([code, grade]) => {
+      if(grade !== ""){
+        db.grades["6F|Matematyka|" + st + "|" + code] = {
+          grade,
+          desc:code,
+          date:"2026-07-26"
+        };
+      }
+    });
+  });
+
+  db.mathDataVersion = "602";
+  return true;
+}
+
+onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -349,6 +414,7 @@ const defaultData={
     {email:"xremskyyt@gmail.com",role:"teacher",name:"Nauczyciel matematyki"},
     {email:"czeskowa34@edudziennik.local",role:"student",name:"Kowalski Czesław"},
     {email:"rafkowa12@edudziennik.local",role:"student",name:"Kowalski Rafał Paweł"},
+    {email:"rekin123@interia.pl",role:"parent",name:"Rodzic Rafała",studentName:"Kowalski Rafał Paweł"},
     {email:"rekin123@interia.pl",role:"parent",name:"Rodzic Rafała",studentName:"Kowalski Rafał Paweł"}
   ],
   students:[
@@ -457,7 +523,7 @@ const seededGrades={
 };
 
 function seedMathClass6IfNeeded(){
-  if(db.seedMathClass6_CLEAN_558)return false;
+  if(db.seedMathClass6_2026_FINAL_558_FINAL_558)return false;
   db.students=[
     {no:"1",name:"Kowalski Czesław",email:"czeskowa34@edudziennik.local",password:"",parentEmail:"rodzic.czeslaw@example.com"},
     {no:"2",name:"Kowalski Rafał Paweł",email:"rafkowa12@edudziennik.local",password:"",parentEmail:"rekin123@interia.pl"}
@@ -466,6 +532,7 @@ function seedMathClass6IfNeeded(){
     {email:"xremskyyt@gmail.com",role:"teacher",name:"Nauczyciel matematyki"},
     {email:"czeskowa34@edudziennik.local",role:"student",name:"Kowalski Czesław"},
     {email:"rafkowa12@edudziennik.local",role:"student",name:"Kowalski Rafał Paweł"},
+    {email:"rekin123@interia.pl",role:"parent",name:"Rodzic Rafała",studentName:"Kowalski Rafał Paweł"},
     {email:"rekin123@interia.pl",role:"parent",name:"Rodzic Rafała",studentName:"Kowalski Rafał Paweł"}
   ];
   db.columns=(db.columns||[]).filter(c=>c.subject!=="Matematyka");
@@ -484,7 +551,7 @@ function seedMathClass6IfNeeded(){
       }
     });
   });
-  db.seedMathClass6_CLEAN_558=true;
+  db.seedMathClass6_2026_FINAL_558_FINAL_558=true;
   selectedStudent="Kowalski Czesław";
   return true;
 }
@@ -516,6 +583,7 @@ onAuthStateChanged(auth, async (user)=>{
 
   if(seedMathClass6IfNeeded()) await save();
   ensureParentAccess(); await save();
+  if(fixMathData602()) await save();
   currentUser=db.users.find(u=>u.email===user.email);
   if(!currentUser){
     alert("To konto nie jest wpisane w dzienniku.");
@@ -764,19 +832,12 @@ window.deleteColumn=async function(index){
 
 
 
-/* ===== CZYSTE LICZENIE ŚREDNIEJ =====
-   Liczy tylko prawdziwe oceny.
-   Pomija: puste pola, nb, np, zw, zwolniony, sam + i sam -.
-   Skala:
-   6=6.00, -6=5.67, 5+=5.33, 5=5.00, -5=4.67 itd.
-*/
+/* ===== POPRAWNE LICZENIE ŚREDNIEJ — WERSJA 602 ===== */
 function gradeNum(g){
-  if(g===undefined || g===null) return null;
+  if(g === undefined || g === null) return null;
   g = String(g).trim().toLowerCase().replace(",", ".");
 
-  if(["", "nb", "np", "zw", "zwolniony", "+", "-"].includes(g)) {
-    return null;
-  }
+  if(["", "nb", "np", "zw", "zwolniony", "+", "-"].includes(g)) return null;
 
   const scale = {
     "6": 6.00,
@@ -812,7 +873,6 @@ function avg(st, sem){
     .forEach(c => {
       const key = "6F|" + subject + "|" + st + "|" + c.code;
       const x = (db.grades || {})[key];
-
       if(!x || !x.grade) return;
 
       const value = gradeNum(x.grade);
@@ -828,7 +888,7 @@ function avg(st, sem){
 
 function avgDetails(st, sem){
   const subject = currentSubject();
-  const rows = [];
+  let rows = [];
   let sum = 0;
   let weightSum = 0;
 
@@ -837,7 +897,6 @@ function avgDetails(st, sem){
     .forEach(c => {
       const key = "6F|" + subject + "|" + st + "|" + c.code;
       const x = (db.grades || {})[key];
-
       if(!x || !x.grade) return;
 
       const grade = String(x.grade).trim();
@@ -909,54 +968,6 @@ function gradeColorClass(grade, code){
   return "g-black";
 }
 function gradeBgClass(code, grade){ return ""; }
-
-
-function renderGrades(){
-  const table = document.getElementById("gradesTable");
-  if(!table)return;
-
-  if(currentCls()!=="6F"){
-    table.outerHTML="<table id='gradesTable'><tr><td>Oceny bieżące są tylko w folderze 6F.</td></tr></table>";
-    return;
-  }
-
-  const subject = currentSubject();
-  const cols = (db.columns||[]).filter(c=>c.subject===subject);
-  const studs = (roleNow==="student"||roleNow==="parent")
-    ? (db.students||[]).filter(s=>s.name===selectedStudent)
-    : (db.students||[]);
-
-  let html = "<table id='gradesTable' class='gradeSheet'>";
-  html += "<tr class='weightRow'><th class='nr'></th><th class='studentName'></th>";
-  cols.forEach(c=>html += `<th>${Number(c.weight||1).toFixed(1)}</th>`);
-  html += "<th>Śr. I</th><th>Śródr.</th><th>Śr. II</th><th>Roczna</th></tr>";
-
-  html += "<tr class='codeRow'><th class='nr'>Nr</th><th>Uczeń</th>";
-  cols.forEach(c=>html += `<th title="${c.desc||""}">${c.code}</th>`);
-  html += "<th></th><th></th><th></th><th></th></tr>";
-
-  studs.forEach(s=>{
-    html += `<tr><td class="nr">${s.no||""}</td><td class="studentName">${s.name}</td>`;
-
-    cols.forEach(c=>{
-      const key = "6F|" + subject + "|" + s.name + "|" + c.code;
-      const x = (db.grades||{})[key] || {};
-      const grade = x.grade || "";
-      const cc = gradeColorClass(grade, c.code);
-      html += `<td class="gradeCell" onclick="openGrade('${s.name}','${c.code}')" title="${x.desc||c.desc||""}\n${x.date||""}">
-        <span class="gradeText ${cc}">${grade}</span>
-      </td>`;
-    });
-
-    html += `<td><span class="avgLink" onclick="showAvgDetails('${s.name}',1)">${avg(s.name,1)}</span></td>
-      <td>${finalCell("6F",subject,s.name,"srodroczna")}</td>
-      <td><span class="avgLink" onclick="showAvgDetails('${s.name}',2)">${avg(s.name,2)}</span></td>
-      <td>${finalCell("6F",subject,s.name,"roczna")}</td></tr>`;
-  });
-
-  html += "</table>";
-  table.outerHTML = html;
-}
 
 function renderFinals(){
   let cls=currentCls();
