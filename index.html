@@ -993,6 +993,28 @@ function renderNotes(){
   db.notes.filter(n=>(roleNow==="teacher"||n.student===selectedStudent)&&n.cls===currentCls()&&n.subject===currentSubject()).forEach(n=>notesTable.innerHTML+=`<tr><td>${n.cls}</td><td>${n.subject}</td><td>${n.student}</td><td>${n.type}</td><td>${n.points}</td><td>${n.text}</td><td>${n.date}</td></tr>`);
 }
 
+
+function ensureParentAccess(){
+  db.users=db.users||[];
+  db.students=db.students||[];
+
+  if(!db.users.some(u=>u.email==="xremskyyt@gmail.com")){
+    db.users.push({email:"xremskyyt@gmail.com",role:"teacher",name:"Nauczyciel matematyki"});
+  }
+
+  if(!db.users.some(u=>u.email==="rekin123@interia.pl")){
+    db.users.push({
+      email:"rekin123@interia.pl",
+      role:"parent",
+      name:"Rodzic Rafała",
+      studentName:"Kowalski Rafał Paweł"
+    });
+  }
+
+  const rafal=db.students.find(s=>s.name==="Kowalski Rafał Paweł");
+  if(rafal) rafal.parentEmail="rekin123@interia.pl";
+}
+
 let mailMode="inbox";
 window.setMailMode=function(mode){
   mailMode=mode;
