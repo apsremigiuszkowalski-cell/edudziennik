@@ -68,10 +68,11 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
 <p class="small">Wersja online: logowanie i zapis danych w chmurze.</p>
 
 <label>Email</label>
-<input id="loginInput" placeholder="np. remkowa35@edudziennik.local" style="width:100%;margin:6px 0">
+<input id="loginInput" placeholder="np. xremskyyt@gmail.com" style="width:100%;margin:6px 0">
 <label>Hasło</label>
 <input id="passInput" type="password" placeholder="hasło" style="width:100%;margin:6px 0">
 <button class="primary" style="width:100%;margin-top:8px" onclick="loginApp()">Zaloguj</button>
+<button style="width:100%;margin-top:8px" onclick="resetPassword()">Resetuj hasło</button>
 <p id="loginError" class="error"></p>
 </section>
 
@@ -213,7 +214,7 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -236,7 +237,7 @@ const defaultData={
   school:"Szkoła Demo",
   classes:["4F","5F","6F"],
   users:[
-    {email:"remkowa35@edudziennik.local",role:"teacher",name:"Nauczyciel matematyki"},
+    {email:"xremskyyt@gmail.com",role:"teacher",name:"Nauczyciel matematyki"},
     {email:"czeskowa34@edudziennik.local",role:"student",name:"Dominik Marcin"},
     {email:"rafkowa12@edudziennik.local",role:"student",name:"Rebeka Gabriela"}
   ],
@@ -274,6 +275,24 @@ window.loginApp = async function(){
     txt('loginError','Błąd logowania: '+e.message);
   }
 }
+
+window.resetPassword = async function(){
+  const email = (document.getElementById("loginInput")?.value || "").trim();
+  if(!email){
+    const el=document.getElementById("loginError");
+    if(el) el.innerText="Wpisz e-mail, a potem kliknij reset hasła.";
+    return;
+  }
+  try{
+    await sendPasswordResetEmail(auth, email);
+    const el=document.getElementById("loginError");
+    if(el) el.innerText="Wysłano wiadomość resetowania hasła na podany e-mail.";
+  }catch(e){
+    const el=document.getElementById("loginError");
+    if(el) el.innerText="Nie udało się wysłać resetu: "+e.message;
+  }
+}
+
 window.logout = async function(){ await signOut(auth); location.reload(); }
 
 onAuthStateChanged(auth, async (user)=>{
