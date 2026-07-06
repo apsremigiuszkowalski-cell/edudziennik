@@ -200,6 +200,19 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
 </div>
 
 
+
+<div id="studentModal" class="modalBg">
+  <div class="modal"><h3>Edytuj ucznia</h3><div class="modalBody">
+    <input id="editStudentIndex" type="hidden">
+    <label>Numer w dzienniku</label><input id="editStudentNo">
+    <label>Imię i nazwisko</label><input id="editStudentName">
+    <label>E-mail / login ucznia</label><input id="editStudentEmail">
+    <label>Hasło informacyjnie</label><input id="editStudentPassword">
+    <button class="primary" onclick="saveStudentEdit()">Zapisz zmiany</button>
+    <button onclick="studentModal.style.display='none'">Anuluj</button>
+  </div></div>
+</div>
+
 <div id="lessonModal" class="modalBg">
   <div class="modal"><h3>Edytuj temat lekcji</h3><div class="modalBody">
     <input id="editLessonIndex" type="hidden">
@@ -350,30 +363,100 @@ function renderTree(){
 function renderSelects(){[attStudent,noteStudent].forEach(sel=>sel.innerHTML=db.students.map(s=>`<option>${s.name}</option>`).join(""))}
 
 window.addStudent=async function(){
-  if(!studentName.value.trim()||!studentEmailNew.value.trim())return alert("Wpisz imię i email.");
-  if(db.users.some(u=>u.email===studentEmailNew.value.trim()))return alert("Taki email już istnieje.");
-  const st={no:studentNo.value.trim()||String(db.students.length+1),name:studentName.value.trim(),email:studentEmailNew.value.trim(),password:studentPasswordNew.value.trim()};
-  db.students.push(st); db.users.push({email:st.email,role:"student",name:st.name});
+  if(!studentName.value.trim()||!studentEmailNew.value.trim())return alert("Wpisz imię i e-mail.");
+  if(db.users.some(u=>u.email===studentEmailNew.value.trim()))return alert("Taki e-mail już istnieje.");
+  const st={
+    no:studentNo.value.trim()||String(db.students.length+1),
+    name:studentName.value.trim(),
+    email:studentEmailNew.value.trim(),
+    password:studentPasswordNew.value.trim()
+  };
+  db.students.push(st);
+  db.users.push({email:st.email,role:"student",name:st.name});
   studentNo.value=studentName.value=studentEmailNew.value=studentPasswordNew.value="";
-  await save(); renderAll();
+  await save();renderAll();
 }
 window.deleteStudent=async function(i){
   if(!confirm("Usunąć ucznia z dziennika? Konto Firebase trzeba usunąć osobno w Firebase."))return;
-  const st=db.students[i]; db.students.splice(i,1); db.users=db.users.filter(u=>u.email!==st.email);
+  const st=db.students[i];
+  if(!st)return;
+  db.students.splice(i,1);
+  db.users=db.users.filter(u=>u.email!==st.email);
+  Object.keys(db.grades||{}).forEach(k=>{if(k.includes("|"+st.name+"|")) delete db.grades[k];});
+  Object.keys(db.finals||{}).forEach(k=>{if(k.includes("|"+st.name+"|")) delete db.finals[k];});
+  db.attendance=(db.attendance||[]).filter(a=>a.student!==st.name);
+  db.notes=(db.notes||[]).filter(n=>n.student!==st.name);
+  if(selectedStudent===st.name) selectedStudent=db.students[0]?.name||"";
   await save();renderAll();
 }
 window.renameStudent=async function(i){
-  let n=prompt("Nowe imię i nazwisko:",db.students[i].name); if(!n)return;
-  const old=db.students[i].name; db.students[i].name=n;
-  const u=db.users.find(x=>x.email===db.students[i].email); if(u)u.name=n;
-  Object.keys(db.grades).forEach(k=>{if(k.includes("|"+old+"|")){db.grades[k.replace("|"+old+"|","|"+n+"|")]=db.grades[k];delete db.grades[k]}});
-  Object.keys(db.finals).forEach(k=>{if(k.includes("|"+old+"|")){db.finals[k.replace("|"+old+"|","|"+n+"|")]=db.finals[k];delete db.finals[k]}});
-  if(selectedStudent===old)selectedStudent=n;
-  await save();renderAll();
+  const s=db.students[i];
+  if(!s)return;
+  editStudentIndex.value=i;
+  editStudentNo.value=s.no||"";
+  editStudentName.value=s.name||"";
+  editStudentEmail.value=s.email||"";
+  editStudentPassword.value=s.password||"";
+  studentModal.style.display="flex";
+}
+window.saveStudentEdit=async function(){
+  const i=Number(editStudentIndex.value);
+  const s=db.students[i];
+  if(!s)return;
+  const oldName=s.name;
+  const oldEmail=s.email;
+  const newNo=editStudentNo.value.trim() || s.no;
+  const newName=editStudentName.value.trim();
+  const newEmail=editStudentEmail.value.trim();
+  const newPassword=editStudentPassword.value.trim();
+  if(!newName || !newEmail)return alert("Wpisz imię i e-mail ucznia.");
+  if(db.students.some((x,idx)=>idx!==i && x.email===newEmail))return alert("Ten e-mail ma już inny uczeń.");
+
+  db.students[i]={no:newNo,name:newName,email:newEmail,password:newPassword};
+
+  let u=db.users.find(x=>x.email===oldEmail);
+  if(u){u.email=newEmail;u.name=newName;}
+  else db.users.push({email:newEmail,role:"student",name:newName});
+
+  Object.keys(db.grades||{}).forEach(k=>{
+    if(k.includes("|"+oldName+"|")){
+      const nk=k.replace("|"+oldName+"|","|"+newName+"|");
+      db.grades[nk]=db.grades[k];
+      delete db.grades[k];
+    }
+  });
+  Object.keys(db.finals||{}).forEach(k=>{
+    if(k.includes("|"+oldName+"|")){
+      const nk=k.replace("|"+oldName+"|","|"+newName+"|");
+      db.finals[nk]=db.finals[k];
+      delete db.finals[k];
+    }
+  });
+  (db.attendance||[]).forEach(a=>{if(a.student===oldName)a.student=newName});
+  (db.notes||[]).forEach(n=>{if(n.student===oldName)n.student=newName});
+
+  if(selectedStudent===oldName)selectedStudent=newName;
+  await save();
+  studentModal.style.display="none";
+  renderAll();
 }
 function renderStudents(){
+  if(!document.getElementById("studentsTable"))return;
+  let q=(document.getElementById("studentSearch")?.value||"").toLowerCase();
   studentsTable.innerHTML="<tr><th>Nr</th><th>Uczeń</th><th>Aktualna klasa</th><th>Email</th><th>Hasło info</th><th class='teacherOnly'>Akcja</th></tr>";
-  db.students.forEach((s,i)=>studentsTable.innerHTML+=`<tr><td>${s.no}</td><td>${s.name}</td><td>6F</td><td>${s.email}</td><td>${s.password||"—"}</td><td class="teacherOnly"><button onclick="renameStudent(${i})">Edytuj</button> <button class="danger" onclick="deleteStudent(${i})">Usuń</button></td></tr>`);
+  db.students
+    .filter(s=>!q || String(s.no).includes(q) || String(s.name).toLowerCase().includes(q) || String(s.email).toLowerCase().includes(q))
+    .forEach((s)=>{
+      let realIndex=db.students.findIndex(x=>x.email===s.email);
+      studentsTable.innerHTML+=`<tr>
+        <td>${s.no}</td>
+        <td class="name" onclick="chooseStudent('${s.name}')">${s.name}</td>
+        <td>6F</td>
+        <td>${s.email}</td>
+        <td>${s.password||"—"}</td>
+        <td class="teacherOnly"><button onclick="renameStudent(${realIndex})">Edytuj</button> <button class="danger" onclick="deleteStudent(${realIndex})">Usuń</button></td>
+      </tr>`;
+    });
 }
 function renderAccounts(){
   accountsTable.innerHTML="<tr><th>Email</th><th>Rola</th><th>Nazwa</th></tr>";
