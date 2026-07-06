@@ -216,10 +216,10 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
     <div id="poczta" class="page hidden">
       <div class="card"><h2>Skrzynka pocztowa</h2><div class="body">
         <div class="grid">
-          <button class="primary" onclick="mailMode='compose';renderMailbox()">Nowa wiadomość</button>
-          <button onclick="mailMode='inbox';renderMailbox()">Odebrane</button>
-          <button onclick="mailMode='sent';renderMailbox()">Wysłane</button>
-          <button onclick="mailMode='all';renderMailbox()">Wszystkie</button>
+          <button class="primary" onclick="setMailMode('compose')">Nowa wiadomość</button>
+          <button onclick="setMailMode('inbox')">Odebrane</button>
+          <button onclick="setMailMode('sent')">Wysłane</button>
+          <button onclick="setMailMode('all')">Wszystkie</button>
         </div>
         <div id="mailBoxPanel" style="margin-top:12px"></div>
       </div></div>
@@ -525,7 +525,7 @@ onAuthStateChanged(auth, async (user)=>{
   }catch(err){ console.error(err); document.body.innerHTML='<div style="padding:30px;font-family:Arial"><h1>Błąd po logowaniu</h1><pre>'+String(err)+'</pre></div>'; }
 });
 
-window.show=function(id){if(roleNow==='parent' && id==='swiadectwo'){alert('Rodzic nie ma dostępu do świadectw.');return;}document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));const page=$(id); if(page) page.classList.remove("hidden");renderAll()}
+window.show=function(id){if((roleNow==='parent'||roleNow==='student') && id==='swiadectwo'){alert('Brak dostępu do świadectw.');return;}document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));const page=$(id); if(page) page.classList.remove("hidden");renderAll()}
 window.chooseClass=function(c){classSelect.value=c; show("koncowe"); renderAll()}
 window.chooseStudent=function(n){if(roleNow==="teacher"){selectedStudent=n;renderAll()}}
 
@@ -866,6 +866,7 @@ function renderFinals(){
   finalsTable.innerHTML=html;
 }
 window.openGrade=function(st,code){
+  if(roleNow!=="teacher")return;
   if(roleNow!=="teacher"||currentCls()!=="6F")return;
   editStudent=st; editCode=code;
   let x=db.grades["6F|"+currentSubject()+"|"+st+"|"+code]||{};
@@ -993,6 +994,10 @@ function renderNotes(){
 }
 
 let mailMode="inbox";
+window.setMailMode=function(mode){
+  mailMode=mode;
+  renderMailbox();
+}
 
 function currentIdentity(){
   if(!currentUser)return {email:"",name:"",role:""};
@@ -1134,7 +1139,7 @@ function renderAll(){
     txt('currentClass',currentCls()); txt('currentLesson',currentSubject()); txt('currentStudentText',selectedStudent||"—");
     renderTree();renderSelects();renderStudents();renderAccounts();renderColumns();renderGrades();renderFinals();renderAttendance();renderLessons();renderNotes();try{renderMailbox();}catch(e){console.error(e);}renderCertSelects();
     document.querySelectorAll(".teacherOnly").forEach(e=>e.style.display=roleNow==="teacher"?"":"none");
-    const clsSel=document.getElementById("classSelect"); if(clsSel) clsSel.style.display=roleNow==="teacher"?"":"none"; document.querySelectorAll(".parentNoAccess").forEach(e=>e.style.display=roleNow==="parent"?"none":"");
+    const clsSel=document.getElementById("classSelect"); if(clsSel) clsSel.style.display=roleNow==="teacher"?"":"none"; document.querySelectorAll(".parentNoAccess").forEach(e=>e.style.display=(roleNow==="parent"||roleNow==="student")?"none":"");
   }catch(err){
     console.error(err);
     document.body.innerHTML='<div style="padding:30px;font-family:Arial"><h1>Błąd renderowania</h1><pre>'+String(err)+'</pre></div>';
