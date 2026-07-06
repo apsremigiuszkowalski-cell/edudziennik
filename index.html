@@ -42,15 +42,10 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
 
 <section id="loginBox" class="login">
 <h1>EduPanel Firebase</h1>
-<p class="small">Wersja online: logowanie Firebase + zapis danych w Firestore.</p>
-<div class="status">
-<b>Domyślne konta do utworzenia w Firebase Authentication:</b><br>
-nauczyciel@edudziennik.local / matma6f<br>
-uczen1@edudziennik.local / 1234<br>
-uczen2@edudziennik.local / 1234
-</div>
+<p class="small">Wersja online: logowanie i zapis danych w chmurze.</p>
+
 <label>Email</label>
-<input id="loginInput" placeholder="np. nauczyciel@edudziennik.local" style="width:100%;margin:6px 0">
+<input id="loginInput" placeholder="np. remkowa35@edudziennik.local" style="width:100%;margin:6px 0">
 <label>Hasło</label>
 <input id="passInput" type="password" placeholder="hasło" style="width:100%;margin:6px 0">
 <button class="primary" style="width:100%;margin-top:8px" onclick="loginApp()">Zaloguj</button>
@@ -183,13 +178,13 @@ const defaultData={
   school:"Szkoła Demo",
   classes:["4F","5F","6F"],
   users:[
-    {email:"nauczyciel@edudziennik.local",role:"teacher",name:"Nauczyciel matematyki"},
-    {email:"uczen1@edudziennik.local",role:"student",name:"Dominik Marcin"},
-    {email:"uczen2@edudziennik.local",role:"student",name:"Rebeka Gabriela"}
+    {email:"remkowa35@edudziennik.local",role:"teacher",name:"Nauczyciel matematyki"},
+    {email:"czeskowa34@edudziennik.local",role:"student",name:"Dominik Marcin"},
+    {email:"rafkowa12@edudziennik.local",role:"student",name:"Rebeka Gabriela"}
   ],
   students:[
-    {no:"1",name:"Dominik Marcin",email:"uczen1@edudziennik.local",password:"1234"},
-    {no:"2",name:"Rebeka Gabriela",email:"uczen2@edudziennik.local",password:"1234"}
+    {no:"1",name:"Dominik Marcin",email:"czeskowa34@edudziennik.local",password:"1234"},
+    {no:"2",name:"Rebeka Gabriela",email:"rafkowa12@edudziennik.local",password:"1234"}
   ],
   columns:[],grades:{},finals:{},attendance:[],lessons:[],notes:[]
 };
