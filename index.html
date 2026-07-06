@@ -36,6 +36,29 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
 .colorDot{display:inline-block;width:12px;height:12px;border:1px solid #555;margin-right:4px;vertical-align:middle}.finalInput{width:95px;text-align:center}.finalInput.exempt{background:#fff8df}
 .status{background:#fff8df;border-left:5px solid #d9a400;padding:10px;margin:8px 0}
 @media(max-width:900px){.layout{grid-template-columns:1fr;height:auto}.panel{max-height:260px}.ribbon{height:auto;flex-wrap:wrap}.grid{grid-template-columns:1fr}}
+
+@media print{
+  body{background:white!important}
+  .top,.ribbon,.lessonBar,.panel,.teacherOnly,.menu,.tree,.login{display:none!important}
+  .layout{display:block;height:auto;padding:0}
+  .main{border:0;padding:0;overflow:visible}
+  .card{box-shadow:none;border:0}
+  button,input,select,textarea{display:none!important}
+  #certificateBox,#reportBox{display:block!important}
+  table{min-width:0;width:100%;font-size:12px}
+}
+.certificate{
+  background:white;
+  border:2px solid #333;
+  padding:24px;
+  max-width:850px;
+  margin:auto;
+  font-family:Georgia,serif;
+}
+.certificate h1{text-align:center;letter-spacing:2px;margin:10px 0 20px}
+.certGrid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:14px 0}
+.certLine{border-bottom:1px dotted #333;min-height:24px;padding:4px}
+.certSubjects td,.certSubjects th{font-family:Georgia,serif}
 </style>
 </head>
 <body>
@@ -61,6 +84,7 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
   <div class="tool" onclick="show('opis')"><div class="ico green"></div><div>Opis lekcji</div></div>
   <div class="tool" onclick="show('frekwencja')"><div class="ico blue"></div><div>Frekwencja</div></div>
   <div class="tool" onclick="show('uwagi')"><div class="ico red"></div><div>Uwagi</div></div>
+  <div class="tool" onclick="show('swiadectwo')"><div class="ico"></div><div>Świadectwo</div></div>
   <div class="tool teacherOnly" onclick="show('uczniowie')"><div class="ico blue"></div><div>Uczniowie</div></div>
   <div class="tool teacherOnly" onclick="show('konta')"><div class="ico green"></div><div>Konta</div></div>
 </div>
@@ -118,7 +142,13 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
     </div>
 
     <div id="opis" class="page hidden">
-      <div class="card teacherOnly"><h2>Opis lekcji</h2><div class="body"><input id="lessonTopic" placeholder="Temat lekcji"><textarea id="lessonDesc" placeholder="Opis lekcji / praca domowa" rows="4"></textarea><button class="primary" onclick="addLesson()">Zapisz opis</button></div></div>
+      <div class="card teacherOnly"><h2>Opis lekcji</h2><div class="body"><div class="grid">
+          <input id="lessonDate" type="date">
+          <input id="lessonNumber" placeholder="Nr lekcji, np. 1">
+          <input id="lessonTopic" placeholder="Temat lekcji">
+          <button class="primary" onclick="addLesson()">Zapisz temat</button>
+        </div>
+        <textarea id="lessonDesc" placeholder="Opis lekcji / praca domowa" rows="4"></textarea></div></div>
       <div class="card"><h2>Opisy lekcji</h2><div class="body"><table id="lessonsTable"></table></div></div>
     </div>
 
@@ -126,6 +156,20 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
       <div class="card teacherOnly"><h2>Dodaj uwagę</h2><div class="body"><div class="grid"><select id="noteStudent"></select><select id="noteType"><option>pozytywna</option><option>negatywna</option><option>informacyjna</option></select><input id="notePoints" placeholder="Punkty"></div><textarea id="noteText" placeholder="Treść uwagi" rows="3"></textarea><button class="primary" onclick="addNote()">Dodaj</button></div></div>
       <div class="card"><h2>Uwagi</h2><div class="body"><table id="notesTable"></table></div></div>
     </div>
+  
+    <div id="swiadectwo" class="page hidden">
+      <div class="card"><h2>Drukowanie świadectwa</h2><div class="body">
+        <div class="grid teacherOnly">
+          <select id="certStudent"></select>
+          <select id="certClass"><option>4F</option><option>5F</option><option selected>6F</option></select>
+          <input id="certYear" placeholder="Rok szkolny, np. 2025/2026">
+          <button class="primary" onclick="renderCertificate()">Pokaż świadectwo</button>
+        </div>
+        <button onclick="window.print()">Drukuj / zapisz PDF</button>
+        <div id="certificateBox"></div>
+      </div></div>
+    </div>
+
   </main>
 
   <aside class="panel">
@@ -137,6 +181,7 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
       <div class="menuItem" onclick="show('opis')">Opis lekcji</div>
       <div class="menuItem" onclick="show('frekwencja')">Frekwencja</div>
       <div class="menuItem" onclick="show('uwagi')">Uwagi</div>
+      <div class="menuItem" onclick="show('swiadectwo')">Drukuj świadectwo</div>
       <div class="menuItem teacherOnly" onclick="show('uczniowie')">Uczniowie</div>
       <div class="menuItem teacherOnly" onclick="show('konta')">Konta</div>
     </div>
@@ -150,6 +195,19 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
     <label>Ocena — wpisz sam</label><input id="gmGrade" placeholder="np. 6, -6, 5+, -5, 4+, -4, 3+, -3, 2+, nb">
     <label>Opis</label><input id="gmDesc">
     <button class="primary" onclick="saveGrade()">Zapisz</button><button onclick="gradeModal.style.display='none'">Anuluj</button>
+  </div></div>
+</div>
+
+
+<div id="lessonModal" class="modalBg">
+  <div class="modal"><h3>Edytuj temat lekcji</h3><div class="modalBody">
+    <input id="editLessonIndex" type="hidden">
+    <label>Data</label><input id="editLessonDate" type="date">
+    <label>Nr lekcji</label><input id="editLessonNumber">
+    <label>Temat</label><input id="editLessonTopic">
+    <label>Opis / praca domowa</label><textarea id="editLessonDesc" rows="4"></textarea>
+    <button class="primary" onclick="saveLessonEdit()">Zapisz zmiany</button>
+    <button onclick="lessonModal.style.display='none'">Anuluj</button>
   </div></div>
 </div>
 
@@ -390,10 +448,109 @@ function renderAttendance(){
   attendanceTable.innerHTML="<tr><th>Klasa</th><th>Przedmiot</th><th>Uczeń</th><th>Status</th><th>Data</th></tr>";
   db.attendance.filter(a=>(roleNow==="teacher"||a.student===selectedStudent)&&a.cls===currentCls()&&a.subject===currentSubject()).forEach(a=>attendanceTable.innerHTML+=`<tr><td>${a.cls}</td><td>${a.subject}</td><td>${a.student}</td><td>${a.status}</td><td>${a.date}</td></tr>`);
 }
-window.addLesson=async function(){db.lessons.push({cls:currentCls(),subject:currentSubject(),topic:lessonTopic.value,desc:lessonDesc.value,date:now()});lessonTopic.value=lessonDesc.value="";await save();renderAll()}
+
+function dateOnly(){
+  let d=new Date();
+  return d.toISOString().slice(0,10);
+}
+function formatDatePL(s){
+  if(!s)return "—";
+  if(s.includes(" ")) return s.split(" ")[0];
+  if(s.includes("-")){
+    const [y,m,d]=s.split("-");
+    return `${d}.${m}.${y}`;
+  }
+  return s;
+}
+function finalText(cls, subject, student){
+  return db.finals[finalKey(cls,subject,student,"roczna")] || db.finals[finalKey(cls,subject,student,"srodroczna")] || "—";
+}
+function renderCertSelects(){
+  if(!document.getElementById("certStudent"))return;
+  certStudent.innerHTML=db.students.map(s=>`<option ${s.name===selectedStudent?'selected':''}>${s.name}</option>`).join("");
+  if(!certYear.value) certYear.value="2025/2026";
+}
+window.renderCertificate=function(){
+  let st = roleNow==="student" ? selectedStudent : (certStudent.value || selectedStudent);
+  let cls = certClass.value || currentCls();
+  let year = certYear.value || "2025/2026";
+  let html = `<div class="certificate">
+    <h1>ŚWIADECTWO SZKOLNE</h1>
+    <p style="text-align:center">Własny wydruk demonstracyjny e-dziennika</p>
+    <div class="certGrid">
+      <div>Uczeń / uczennica:<div class="certLine"><b>${st}</b></div></div>
+      <div>Klasa:<div class="certLine"><b>${cls}</b></div></div>
+      <div>Rok szkolny:<div class="certLine"><b>${year}</b></div></div>
+      <div>Szkoła:<div class="certLine"><b>${db.school || "Szkoła Demo"}</b></div></div>
+    </div>
+    <h3>Oceny roczne</h3>
+    <table class="certSubjects">
+      <tr><th>Przedmiot</th><th>Ocena roczna</th></tr>`;
+  subjects.forEach(sub=>{
+    html += `<tr><td>${sub}</td><td>${finalText(cls, sub, st)}</td></tr>`;
+  });
+  html += `</table>
+    <div style="margin-top:40px;display:grid;grid-template-columns:1fr 1fr;gap:60px">
+      <div>Data:<div class="certLine"></div></div>
+      <div>Podpis:<div class="certLine"></div></div>
+    </div>
+  </div>`;
+  certificateBox.innerHTML=html;
+}
+
+window.addLesson=async function(){
+  if(!lessonTopic.value.trim())return alert("Wpisz temat lekcji.");
+  db.lessons.push({
+    cls:currentCls(),
+    subject:currentSubject(),
+    topic:lessonTopic.value.trim(),
+    desc:lessonDesc.value,
+    lessonNo:lessonNumber.value.trim(),
+    date:lessonDate.value || dateOnly()
+  });
+  lessonTopic.value=lessonDesc.value=lessonNumber.value="";
+  lessonDate.value=dateOnly();
+  await save();renderAll();
+}
+window.editLesson=function(i){
+  let l=db.lessons[i]; if(!l)return;
+  editLessonIndex.value=i;
+  editLessonDate.value=(l.date||dateOnly()).includes("-") ? l.date : dateOnly();
+  editLessonNumber.value=l.lessonNo||"";
+  editLessonTopic.value=l.topic||"";
+  editLessonDesc.value=l.desc||"";
+  lessonModal.style.display="flex";
+}
+window.saveLessonEdit=async function(){
+  let i=Number(editLessonIndex.value);
+  if(!db.lessons[i])return;
+  db.lessons[i].date=editLessonDate.value || dateOnly();
+  db.lessons[i].lessonNo=editLessonNumber.value.trim();
+  db.lessons[i].topic=editLessonTopic.value.trim();
+  db.lessons[i].desc=editLessonDesc.value;
+  await save();
+  lessonModal.style.display="none";
+  renderAll();
+}
+window.deleteLesson=async function(i){
+  if(!confirm("Usunąć temat lekcji?"))return;
+  db.lessons.splice(i,1);
+  await save();renderAll();
+}
 function renderLessons(){
-  lessonsTable.innerHTML="<tr><th>Klasa</th><th>Przedmiot</th><th>Data</th><th>Temat</th><th>Opis</th></tr>";
-  db.lessons.filter(l=>l.cls===currentCls()&&l.subject===currentSubject()).forEach(l=>lessonsTable.innerHTML+=`<tr><td>${l.cls}</td><td>${l.subject}</td><td>${l.date}</td><td>${l.topic}</td><td>${l.desc}</td></tr>`);
+  lessonsTable.innerHTML="<tr><th>Klasa</th><th>Przedmiot</th><th>Data</th><th>Nr lekcji</th><th>Temat</th><th>Opis</th><th class='teacherOnly'>Akcja</th></tr>";
+  db.lessons.filter(l=>l.cls===currentCls()&&l.subject===currentSubject()).forEach(l=>{
+    let i=db.lessons.indexOf(l);
+    lessonsTable.innerHTML+=`<tr>
+      <td>${l.cls}</td>
+      <td>${l.subject}</td>
+      <td>${formatDatePL(l.date)}</td>
+      <td>${l.lessonNo||"—"}</td>
+      <td>${l.topic}</td>
+      <td>${l.desc||"—"}</td>
+      <td class="teacherOnly"><button onclick="editLesson(${i})">Edytuj</button> <button class="danger" onclick="deleteLesson(${i})">Usuń</button></td>
+    </tr>`;
+  });
 }
 window.addNote=async function(){db.notes.push({cls:currentCls(),subject:currentSubject(),student:noteStudent.value,type:noteType.value,points:notePoints.value,text:noteText.value,date:now()});notePoints.value=noteText.value="";await save();renderAll()}
 function renderNotes(){
@@ -403,14 +560,14 @@ function renderNotes(){
 function renderAll(){
   try{
     txt('currentClass',currentCls()); txt('currentLesson',currentSubject()); txt('currentStudentText',selectedStudent||"—");
-    renderTree();renderSelects();renderStudents();renderAccounts();renderColumns();renderGrades();renderFinals();renderAttendance();renderLessons();renderNotes();
+    renderTree();renderSelects();renderStudents();renderAccounts();renderColumns();renderGrades();renderFinals();renderAttendance();renderLessons();renderNotes();renderCertSelects();
     document.querySelectorAll(".teacherOnly").forEach(e=>e.style.display=roleNow==="teacher"?"":"none");
   }catch(err){
     console.error(err);
     document.body.innerHTML='<div style="padding:30px;font-family:Arial"><h1>Błąd renderowania</h1><pre>'+String(err)+'</pre></div>';
   }
 }
-initSubjects();
+initSubjects(); if(document.getElementById('lessonDate')) lessonDate.value=dateOnly();
 </script>
 </body>
 </html>
