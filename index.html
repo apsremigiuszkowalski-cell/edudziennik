@@ -260,7 +260,19 @@ onAuthStateChanged(auth, async (user)=>{
   if(!snap.exists()){
     await setDoc(dataRef, defaultData);
     db=structuredClone(defaultData);
-  }else db=snap.data();
+  }else {
+    db = {...structuredClone(defaultData), ...snap.data()};
+    if(!db.users) db.users = defaultData.users;
+    if(!db.students) db.students = defaultData.students;
+    if(!db.columns) db.columns = [];
+    if(!db.grades) db.grades = {};
+    if(!db.finals) db.finals = {};
+    if(!db.attendance) db.attendance = [];
+    if(!db.lessons) db.lessons = [];
+    if(!db.notes) db.notes = [];
+    if(!db.exams) db.exams = [];
+    if(!db.homework) db.homework = [];
+  }
 
   currentUser=db.users.find(u=>u.email===user.email);
   if(!currentUser){
@@ -513,10 +525,15 @@ function renderNotes(){
   db.notes.filter(n=>(roleNow==="teacher"||n.student===selectedStudent)&&n.cls===currentCls()&&n.subject===currentSubject()).forEach(n=>notesTable.innerHTML+=`<tr><td>${n.cls}</td><td>${n.subject}</td><td>${n.student}</td><td>${n.type}</td><td>${n.points}</td><td>${n.text}</td><td>${n.date}</td></tr>`);
 }
 function renderAll(){
-  ensureArrays();
-  currentClass.innerText=currentCls(); currentLesson.innerText=currentSubject(); currentStudentText.innerText=selectedStudent||"—";
-  renderTree();renderSelects();renderStudents();renderAccounts();renderColumns();renderGrades();renderFinals();renderAttendance();renderLessons();renderNotes();renderExams();renderHomework();renderReportAuto();
-  document.querySelectorAll(".teacherOnly").forEach(e=>e.style.display=roleNow==="teacher"?"":"none");
+  try{
+    ensureArrays();
+    currentClass.innerText=currentCls(); currentLesson.innerText=currentSubject(); currentStudentText.innerText=selectedStudent||"—";
+    renderTree();renderSelects();renderStudents();renderAccounts();renderColumns();renderGrades();renderFinals();renderAttendance();renderLessons();renderNotes();renderExams();renderHomework();renderReportAuto();
+    document.querySelectorAll(".teacherOnly").forEach(e=>e.style.display=roleNow==="teacher"?"":"none");
+  }catch(err){
+    console.error(err);
+    document.body.innerHTML = "<div style='padding:30px;font-family:Arial'><h1>Błąd aplikacji</h1><p>Otwórz konsolę F12 → Console i wyślij błąd.</p><pre>"+String(err)+"</pre></div>";
+  }
 }
 initSubjects();
 </script>
