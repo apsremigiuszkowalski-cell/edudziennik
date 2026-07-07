@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
+<!-- WERSJA 623: oceny na górze, kody kolumn zwijane domyślnie -->
 <!-- WERSJA 622: poprawiona ocena = tylko pełne żółte obramowanie, data tylko po kliknięciu -->
 <!-- WERSJA 621: naprawiony błąd JS blokujący logowanie -->
 <!-- WERSJA 620: logowanie naprawione, tylko żółte obramowanie poprawy -->
@@ -207,17 +208,24 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
     </div>
 
     <div id="oceny" class="page hidden">
-      <div class="card teacherOnly"><h2>Dodaj kolumnę ocen bieżących 6F</h2><div class="body">
-        <div class="grid"><input id="colCode" placeholder="Kod, np. s1"><input id="colDesc" placeholder="Opis"><select id="colWeight"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select><select id="colSemester"><option value="1">Śródroczne</option><option value="2">Drugie półrocze</option></select></div>
-        <div class="grid"><label>Kolor <input id="colColor" type="color" value="#cc3333"></label><button class="primary" onclick="addColumn()">Dodaj kolumnę</button></div>
-      </div></div>
-      <div class="card teacherOnly"><h2>Kody kolumn</h2><div class="body"><table id="columnsTable"></table></div></div>
       <div class="card"><h2>Oceny bieżące 6F — wszyscy uczniowie razem</h2><div class="body">
-        <div style="margin-bottom:8px">
+        <div class="semSwitch">
           <button id="semBtn1" class="primary" onclick="setGradeSemester('1')">I semestr</button>
           <button id="semBtn2" onclick="setGradeSemester('2')">II semestr</button>
         </div>
         <table id="gradesTable"></table>
+      </div></div>
+
+      <div class="card teacherOnly">
+        <h2 style="cursor:pointer" onclick="toggleColumnsPanel()">Kody kolumn <span id="columnsToggleIcon">▶</span></h2>
+        <div class="body" id="columnsPanelBody" style="display:none">
+          <table id="columnsTable"></table>
+        </div>
+      </div>
+
+      <div class="card teacherOnly"><h2>Dodaj kolumnę ocen bieżących 6F</h2><div class="body">
+        <div class="grid"><input id="colCode" placeholder="Kod, np. s1"><input id="colDesc" placeholder="Opis"><select id="colWeight"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select><select id="colSemester"><option value="1">Śródroczne</option><option value="2">Drugie półrocze</option></select></div>
+        <div class="grid"><label>Kolor <input id="colColor" type="color" value="#cc3333"></label><button class="primary" onclick="addColumn()">Dodaj kolumnę</button></div>
       </div></div>
     </div>
 
@@ -435,6 +443,7 @@ let db=structuredClone(defaultData);
 let currentUser=null, roleNow="teacher", selectedStudent="Kowalski Czesław", editStudent="", editCode="", unsub=null;
 let activeGradeSemester="1";
 let calendarMonth=new Date();
+let columnsCollapsed=true;
 let collapsedClasses={};
 
 const $ = (id) => document.getElementById(id);
@@ -797,7 +806,20 @@ window.addColumn=async function(){
   colCode.value=colDesc.value="";
   await save();renderAll();
 }
+
+window.toggleColumnsPanel=function(){
+  columnsCollapsed=!columnsCollapsed;
+  updateColumnsPanelState();
+}
+function updateColumnsPanelState(){
+  const body=document.getElementById("columnsPanelBody");
+  const icon=document.getElementById("columnsToggleIcon");
+  if(body) body.style.display=columnsCollapsed?"none":"block";
+  if(icon) icon.innerText=columnsCollapsed?"▶":"▼";
+}
 function renderColumns(){
+  updateColumnsPanelState();
+
   let subject=currentSubject();
   let cols=db.columns.filter(c=>c.subject===subject);
   columnsTable.innerHTML="<tr><th>Kod</th><th>Przedmiot</th><th>Opis</th><th>Waga</th><th>Okres</th><th>Kolor</th><th>Akcja</th></tr>";
