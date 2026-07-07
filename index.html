@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
+<!-- WERSJA 610: poprawione oceny z minusem 5-, 4-, 3- -->
 <!-- WERSJA 607: dodana brakująca funkcja renderGrades, średnia 5.58 -->
 <!-- WERSJA 603: poprawiony import, średnia i dane matematyki -->
 <!-- WERSJA FINAL SREDNIA 5.58: nb/puste/+/- nie liczone; 5+=5.33; 5-=4.67 -->
@@ -775,22 +776,31 @@ function gradeNum(g){
 
   const scale = {
     "6": 6.00,
+    "6-": 5.67,
     "-6": 5.67,
+
     "5+": 5.33,
     "+5": 5.33,
     "5": 5.00,
+    "5-": 4.67,
     "-5": 4.67,
+
     "4+": 4.33,
     "+4": 4.33,
     "4": 4.00,
+    "4-": 3.67,
     "-4": 3.67,
+
     "3+": 3.33,
     "+3": 3.33,
     "3": 3.00,
+    "3-": 2.67,
     "-3": 2.67,
+
     "2+": 2.33,
     "+2": 2.33,
     "2": 2.00,
+
     "1": 1.00
   };
 
