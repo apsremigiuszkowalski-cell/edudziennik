@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
+<!-- WERSJA 634: naprawione tygodnie planu bez przeskoku na niedzielę -->
 <!-- WERSJA 633: zmiana tygodni w planie i lekcje odwołane -->
 <!-- WERSJA 628: plan oddziału jak Vulcan -->
 <!-- WERSJA 627: 4F/5F zwinięte, kalendarz klikany i przeciągany -->
@@ -1857,20 +1858,28 @@ const lessonTimes = {
   10:"20:15–21:00"
 };
 
+function localDateFromInput(s){
+  if(!s)return new Date(2026,4,26);
+  const [y,m,d]=String(s).split("-").map(Number);
+  return new Date(y, (m||1)-1, d||1);
+}
+function dateToInputValue(d){
+  const pad=n=>String(n).padStart(2,"0");
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
 function startOfWeek(d){
-  d=new Date(d);
-  const day=(d.getDay()+6)%7;
+  d=new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const day=(d.getDay()+6)%7; // poniedziałek = 0
   d.setDate(d.getDate()-day);
-  d.setHours(0,0,0,0);
   return d;
 }
 function weekKeyFromDate(s){
-  return startOfWeek(s?new Date(s+"T00:00:00"):new Date()).toISOString().slice(0,10);
+  return dateToInputValue(startOfWeek(localDateFromInput(s)));
 }
 window.changePlanWeek=function(delta){
-  const base=startOfWeek(planWeek?.value?new Date(planWeek.value+"T00:00:00"):new Date("2026-05-26T00:00:00"));
-  base.setDate(base.getDate()+delta*7);
-  planWeek.value=base.toISOString().slice(0,10);
+  const current=startOfWeek(localDateFromInput(planWeek?.value || "2026-05-26"));
+  current.setDate(current.getDate()+delta*7);
+  planWeek.value=dateToInputValue(current);
   renderPlan();
 }
 function dayName(n){return ["","Poniedziałek","Wtorek","Środa","Czwartek","Piątek","Sobota","Niedziela"][Number(n)]||""}
@@ -1984,8 +1993,8 @@ function renderPlan(){
   const week=weekKeyFromDate(planWeek?.value);
   let out="<table class='planGrid'><tr><th>Lekcja</th>";
   for(let d=1;d<=7;d++){
-      const base=startOfWeek(new Date(planWeek?.value||new Date()));
-      const dateObj=new Date(base);
+      const base=startOfWeek(localDateFromInput(planWeek?.value || "2026-05-26"));
+      const dateObj=new Date(base.getFullYear(), base.getMonth(), base.getDate());
       dateObj.setDate(base.getDate()+(d-1));
       const dateStr=dateObj.toLocaleDateString("pl-PL");
       out+=`<th>${dayName(d)}<br><span style="font-size:10px;color:#666">${dateStr}</span></th>`;
