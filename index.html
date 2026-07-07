@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-<!-- WERSJA 604: naprawione renderGrades + średnia -->
+<!-- WERSJA 605: awaryjnie dodane renderGradesSafe -->
 <!-- WERSJA 603: poprawiony import, średnia i dane matematyki -->
 <!-- WERSJA FINAL SREDNIA 5.58: nb/puste/+/- nie liczone; 5+=5.33; 5-=4.67 -->
 <meta charset="UTF-8">
@@ -966,7 +966,6 @@ function gradeColorClass(grade, code){
 }
 function gradeBgClass(code, grade){ return ""; }
 
-
 function renderFinals(){
   let cls=currentCls();
   let studs=(roleNow==="student"||roleNow==="parent")?db.students.filter(s=>s.name===selectedStudent):db.students;
@@ -1280,7 +1279,7 @@ window.deleteMessage=async function(i){
 function renderAll(){
   try{
     txt('currentClass',currentCls()); txt('currentLesson',currentSubject()); txt('currentStudentText',selectedStudent||"—");
-    renderTree();renderSelects();renderStudents();renderAccounts();renderColumns();renderGrades();renderFinals();renderAttendance();renderLessons();renderNotes();try{renderMailbox();}catch(e){console.error(e);}renderCertSelects();
+    renderTree();renderSelects();renderStudents();renderAccounts();renderColumns();window.renderGradesSafe();renderFinals();renderAttendance();renderLessons();renderNotes();try{renderMailbox();}catch(e){console.error(e);}renderCertSelects();
     document.querySelectorAll(".teacherOnly").forEach(e=>e.style.display=roleNow==="teacher"?"":"none");
     const clsSel=document.getElementById("classSelect"); if(clsSel) clsSel.style.display=roleNow==="teacher"?"":"none"; document.querySelectorAll(".parentNoAccess").forEach(e=>e.style.display=(roleNow==="parent"||roleNow==="student")?"none":"");
   }catch(err){
@@ -1289,6 +1288,61 @@ function renderAll(){
   }
 }
 initSubjects(); if(document.getElementById('lessonDate')) lessonDate.value=dateOnly();
+
+
+/* ===== AWARYJNA NAPRAWA renderGrades — WERSJA 605 ===== */
+window.renderGradesSafe = function(){
+  const table = document.getElementById("gradesTable");
+  if(!table) return;
+
+  if(currentCls() !== "6F"){
+    table.outerHTML = "<table id='gradesTable'><tr><td>Oceny bieżące są tylko w folderze 6F.</td></tr></table>";
+    return;
+  }
+
+  const subject = currentSubject();
+  const cols = (db.columns || []).filter(c => c.subject === subject);
+  const studs = (roleNow === "student" || roleNow === "parent")
+    ? (db.students || []).filter(s => s.name === selectedStudent)
+    : (db.students || []);
+
+  let out = "<table id='gradesTable' class='gradeSheet'>";
+  out += "<tr class='weightRow'><th class='nr'></th><th class='studentName'></th>";
+  cols.forEach(c => out += `<th>${Number(c.weight || 1).toFixed(1)}</th>`);
+  out += "<th>Śr. I</th><th>Śródr.</th><th>Śr. II</th><th>Roczna</th></tr>";
+
+  out += "<tr class='codeRow'><th class='nr'>Nr</th><th>Uczeń</th>";
+  cols.forEach(c => out += `<th title="${c.desc || ""}">${c.code}</th>`);
+  out += "<th></th><th></th><th></th><th></th></tr>";
+
+  studs.forEach(s => {
+    out += `<tr><td class="nr">${s.no || ""}</td><td class="studentName">${s.name}</td>`;
+
+    cols.forEach(c => {
+      const key = "6F|" + subject + "|" + s.name + "|" + c.code;
+      const x = (db.grades || {})[key] || {};
+      const grade = x.grade || "";
+      const cc = gradeColorClass(grade, c.code);
+
+      out += `<td class="gradeCell" onclick="openGrade('${s.name}','${c.code}')" title="${x.desc || c.desc || ""}\n${x.date || ""}">
+        <span class="gradeText ${cc}">${grade}</span>
+      </td>`;
+    });
+
+    out += `<td><span class="avgLink" onclick="showAvgDetails('${s.name}',1)">${avg(s.name,1)}</span></td>
+      <td>${finalCell("6F", subject, s.name, "srodroczna")}</td>
+      <td><span class="avgLink" onclick="showAvgDetails('${s.name}',2)">${avg(s.name,2)}</span></td>
+      <td>${finalCell("6F", subject, s.name, "roczna")}</td></tr>`;
+  });
+
+  out += "</table>";
+  table.outerHTML = out;
+};
+
+/* nazwa, której szuka stary kod */
+function renderGrades(){
+  return window.renderGradesSafe();
+}
 
 </script>
 </body>
