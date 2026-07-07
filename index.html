@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
+<!-- WERSJA 616: naprawiona stara ocena / poprawiona z -->
 <!-- WERSJA 615: zwijane klasy i praca klasowa w kalendarzu -->
 <!-- WERSJA 614: naprawione logowanie i initSubjects -->
 <!-- WERSJA 613: naprawione logowanie po błędzie duplikatu zmiennych -->
@@ -95,7 +96,7 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
 
 .improvedGrade{}
 .improvedGrade .gradeText{font-weight:bold}
-.oldGradeMark{font-size:10px;color:#555;display:block}
+.oldGradeMark{font-size:10px;color:#555;display:block;line-height:1.1}
 
 .mailList{display:grid;gap:8px}
 .mailItem{border:1px solid #c5ced8;background:#fff;padding:10px;text-align:left;cursor:pointer}
@@ -1093,7 +1094,8 @@ function renderGrades(){
     cols.forEach(c=>{
       const key="6F|"+subject+"|"+s.name+"|"+c.code;
       const x=(db.grades||{})[key]||{}, grade=x.grade||"", cc=gradeColorClass(grade,c.code);
-      out+=`<td class="gradeCell" onclick="openGrade('${s.name}','${c.code}')" title="${x.desc||c.desc||''}\n${x.date||''}"><span class="gradeText ${cc}">${grade}</span></td>`;
+      const oldMark=x.oldGrade ? `<span class="oldGradeMark">popr. z ${x.oldGrade}</span>` : "";
+      out+=`<td class="gradeCell" onclick="openGrade('${s.name}','${c.code}')" title="${x.desc||c.desc||''}\n${x.date||''}${x.oldGrade?'\nPoprawiona z: '+x.oldGrade:''}"><span class="gradeText ${cc}">${grade}</span>${oldMark}</td>`;
     });
     if(sem==="1"){
       out+=`<td><span class="avgLink" onclick="showAvgDetails('${s.name}',1)">${avg(s.name,1)}</span></td>`;
