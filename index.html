@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
+<!-- WERSJA 633: zmiana tygodni w planie i lekcje odwołane -->
 <!-- WERSJA 628: plan oddziału jak Vulcan -->
 <!-- WERSJA 627: 4F/5F zwinięte, kalendarz klikany i przeciągany -->
 <!-- WERSJA 626: przeciąganie kodów kolumn drag & drop -->
@@ -169,6 +170,23 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
 .planLesson.other{background:#fff7dc;border-left-color:#d9a400}
 .planLesson:active{cursor:grabbing}
 .planMeta{font-size:10px;color:#555}
+
+.planLesson.cancelled{
+  background:#f2f2f2!important;
+  border-left-color:#999!important;
+  opacity:.75;
+  text-decoration:line-through;
+}
+.cancelBadge{
+  display:inline-block;
+  background:#b00020;
+  color:white;
+  font-size:10px;
+  padding:1px 4px;
+  border-radius:3px;
+  margin-left:4px;
+  text-decoration:none!important;
+}
 </style>
 </head>
 <body>
@@ -308,7 +326,11 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
       <div class="card"><h2>Plan oddziału</h2><div class="body">
         <div class="grid">
           <select id="planClass"><option>6F</option><option>5F</option><option>4F</option></select>
-          <input id="planWeek" type="date">
+          <input id="planWeek" type="date" onchange="renderPlan()">
+          <button onclick="changePlanWeek(-1)">◀ Poprzedni tydzień</button>
+          <button onclick="changePlanWeek(1)">Następny tydzień ▶</button>
+        </div>
+        <div class="grid">
           <button class="primary teacherOnly" onclick="openPlanAdd()">Dodaj pozycję planu</button>
           <button onclick="renderPlan()">Pokaż tydzień</button>
         </div>
@@ -482,7 +504,7 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
     <label>Przedmiot / inne zajęcia</label><input id="planSubject" placeholder="np. Matematyka albo apel">
     <label>Nauczyciel</label><input id="planTeacher" placeholder="np. Nauczyciel matematyki">
     <label>Sala</label><input id="planRoom" placeholder="np. 12">
-    <label>Cykl terminu</label><select id="planCycle"><option value="weekly">co tydzień</option><option value="once">jednorazowo</option><option value="two_weeks">co dwa tygodnie</option></select>
+    <label>Cykl terminu</label><select id="planCycle"><option value="weekly">co tydzień</option><option value="once">jednorazowo</option><option value="two_weeks">co dwa tygodnie</option></select><label><input id="planCancelled" type="checkbox" style="width:auto"> Lekcja odwołana</label>
     <label>Data końcowa, gdy cykliczne</label><input id="planEndDate" type="date">
     <button class="primary" onclick="savePlanLesson()">Zapisz</button>
     <button class="danger" id="deletePlanBtn" onclick="deletePlanLesson()">Usuń</button>
@@ -1845,6 +1867,12 @@ function startOfWeek(d){
 function weekKeyFromDate(s){
   return startOfWeek(s?new Date(s+"T00:00:00"):new Date()).toISOString().slice(0,10);
 }
+window.changePlanWeek=function(delta){
+  const base=startOfWeek(planWeek?.value?new Date(planWeek.value+"T00:00:00"):new Date("2026-05-26T00:00:00"));
+  base.setDate(base.getDate()+delta*7);
+  planWeek.value=base.toISOString().slice(0,10);
+  renderPlan();
+}
 function dayName(n){return ["","Poniedziałek","Wtorek","Środa","Czwartek","Piątek","Sobota","Niedziela"][Number(n)]||""}
 
 window.openPlanAdd=function(day,period){
@@ -1858,6 +1886,7 @@ window.openPlanAdd=function(day,period){
   planTeacher.value=currentUser?.name||"";
   planRoom.value="";
   planCycle.value="weekly";
+  if(document.getElementById("planCancelled")) planCancelled.checked=false;
   planEndDate.value="";
   deletePlanBtn.style.display="none";
   planModal.style.display="flex";
@@ -1874,6 +1903,7 @@ window.openPlanEdit=function(i){
   planTeacher.value=p.teacher||"";
   planRoom.value=p.room||"";
   planCycle.value=p.cycle||"weekly";
+  if(document.getElementById("planCancelled")) planCancelled.checked=!!p.cancelled;
   planEndDate.value=p.endDate||"";
   deletePlanBtn.style.display="";
   planModal.style.display="flex";
@@ -1891,6 +1921,7 @@ window.savePlanLesson=async function(){
     teacher:planTeacher.value.trim(),
     room:planRoom.value.trim(),
     cycle:planCycle.value,
+    cancelled:document.getElementById("planCancelled") ? planCancelled.checked : false,
     endDate:planEndDate.value,
     updated:now()
   };
@@ -1967,7 +1998,7 @@ function renderPlan(){
       out+=`<td class="planCell" onclick="openPlanAdd(${d},${p})" ondragover="allowPlanDrop(event)" ondragleave="leavePlanDrop(event)" ondrop="dropPlanOnCell(event,${d},${p})">`;
       items.forEach(item=>{
         const i=db.plans.indexOf(item);
-        out+=`<div class="planLesson ${item.kind==='other'?'other':''}" draggable="${roleNow==='teacher'}" onclick="event.stopPropagation();openPlanEdit(${i})" ondragstart="startPlanDrag(event,${i})"><b>${item.subject||"(bez nazwy)"}</b><div class="planMeta">${item.teacher||"—"}${item.room?" | sala "+item.room:""}<br>${item.cycle==="once"?"jednorazowo":item.cycle==="two_weeks"?"co dwa tygodnie":"co tydzień"}</div></div>`;
+        out+=`<div class="planLesson ${item.kind==='other'?'other':''} ${item.cancelled?'cancelled':''}" draggable="${roleNow==='teacher'}" onclick="event.stopPropagation();openPlanEdit(${i})" ondragstart="startPlanDrag(event,${i})"><b>${item.subject||"(bez nazwy)"}</b>${item.cancelled?'<span class="cancelBadge">ODWOŁANA</span>':''}<div class="planMeta">${item.teacher||"—"}${item.room?" | sala "+item.room:""}<br>${item.cycle==="once"?"jednorazowo":item.cycle==="two_weeks"?"co dwa tygodnie":"co tydzień"}</div></div>`;
       });
       out+="</td>";
     }
