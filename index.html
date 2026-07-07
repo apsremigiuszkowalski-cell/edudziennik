@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
+<!-- WERSJA 635: odwołanie tylko wybranego tygodnia i bez tekstu cyklu -->
 <!-- WERSJA 634: naprawione tygodnie planu bez przeskoku na niedzielę -->
 <!-- WERSJA 633: zmiana tygodni w planie i lekcje odwołane -->
 <!-- WERSJA 628: plan oddziału jak Vulcan -->
@@ -1912,7 +1913,7 @@ window.openPlanEdit=function(i){
   planTeacher.value=p.teacher||"";
   planRoom.value=p.room||"";
   planCycle.value=p.cycle||"weekly";
-  if(document.getElementById("planCancelled")) planCancelled.checked=!!p.cancelled;
+  if(document.getElementById("planCancelled")) planCancelled.checked=isPlanCancelled(p, weekKeyFromDate(planWeek?.value));
   planEndDate.value=p.endDate||"";
   deletePlanBtn.style.display="";
   planModal.style.display="flex";
@@ -1920,9 +1921,13 @@ window.openPlanEdit=function(i){
 window.savePlanLesson=async function(){
   if(roleNow!=="teacher")return;
   db.plans=db.plans||[];
+
+  const selectedWeek=weekKeyFromDate(planWeek?.value);
+  const i=planEditIndex.value===""?-1:Number(planEditIndex.value);
+
   const obj={
     cls:planModalClass.value,
-    week:weekKeyFromDate(planWeek?.value),
+    week:selectedWeek,
     day:Number(planDay.value),
     period:Number(planPeriod.value),
     kind:planKind.value,
@@ -1930,13 +1935,25 @@ window.savePlanLesson=async function(){
     teacher:planTeacher.value.trim(),
     room:planRoom.value.trim(),
     cycle:planCycle.value,
-    cancelled:document.getElementById("planCancelled") ? planCancelled.checked : false,
     endDate:planEndDate.value,
     updated:now()
   };
-  const i=planEditIndex.value===""?-1:Number(planEditIndex.value);
-  if(i>=0&&db.plans[i]) db.plans[i]=obj;
-  else db.plans.push(obj);
+
+  const cancelValue=document.getElementById("planCancelled") ? planCancelled.checked : false;
+
+  if(i>=0 && db.plans[i]){
+    const old=db.plans[i];
+
+    // zachowaj listę odwołanych tygodni, jeśli lekcja była cykliczna
+    obj.cancelledWeeks=Array.isArray(old.cancelledWeeks)?old.cancelledWeeks:[];
+
+    setPlanCancelledForWeek(obj, selectedWeek, cancelValue);
+    db.plans[i]=obj;
+  }else{
+    setPlanCancelledForWeek(obj, selectedWeek, cancelValue);
+    db.plans.push(obj);
+  }
+
   await save();
   planModal.style.display="none";
   renderAll();
@@ -1950,6 +1967,24 @@ window.deletePlanLesson=async function(){
   await save();
   planModal.style.display="none";
   renderAll();
+}
+
+function isPlanCancelled(p,week){
+  if(p.cycle==="once") return !!p.cancelled;
+  return Array.isArray(p.cancelledWeeks) && p.cancelledWeeks.includes(week);
+}
+function setPlanCancelledForWeek(p,week,value){
+  if(p.cycle==="once"){
+    p.cancelled=!!value;
+    return;
+  }
+  p.cancelledWeeks=Array.isArray(p.cancelledWeeks)?p.cancelledWeeks:[];
+  p.cancelled=false; // cykliczna lekcja nie jest odwołana na zawsze
+  if(value){
+    if(!p.cancelledWeeks.includes(week)) p.cancelledWeeks.push(week);
+  }else{
+    p.cancelledWeeks=p.cancelledWeeks.filter(x=>x!==week);
+  }
 }
 function planApplies(p,week){
   if(p.cycle==="once") return p.week===week;
@@ -2007,7 +2042,8 @@ function renderPlan(){
       out+=`<td class="planCell" onclick="openPlanAdd(${d},${p})" ondragover="allowPlanDrop(event)" ondragleave="leavePlanDrop(event)" ondrop="dropPlanOnCell(event,${d},${p})">`;
       items.forEach(item=>{
         const i=db.plans.indexOf(item);
-        out+=`<div class="planLesson ${item.kind==='other'?'other':''} ${item.cancelled?'cancelled':''}" draggable="${roleNow==='teacher'}" onclick="event.stopPropagation();openPlanEdit(${i})" ondragstart="startPlanDrag(event,${i})"><b>${item.subject||"(bez nazwy)"}</b>${item.cancelled?'<span class="cancelBadge">ODWOŁANA</span>':''}<div class="planMeta">${item.teacher||"—"}${item.room?" | sala "+item.room:""}<br>${item.cycle==="once"?"jednorazowo":item.cycle==="two_weeks"?"co dwa tygodnie":"co tydzień"}</div></div>`;
+        const cancelled=isPlanCancelled(item,week);
+        out+=`<div class="planLesson ${item.kind==='other'?'other':''} ${cancelled?'cancelled':''}" draggable="${roleNow==='teacher'}" onclick="event.stopPropagation();openPlanEdit(${i})" ondragstart="startPlanDrag(event,${i})"><b>${item.subject||"(bez nazwy)"}</b>${cancelled?'<span class="cancelBadge">ODWOŁANA</span>':''}<div class="planMeta">${item.teacher||"—"}${item.room?" | sala "+item.room:""}</div></div>`;
       });
       out+="</td>";
     }
