@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
+<!-- WERSJA 628: plan oddziału jak Vulcan -->
 <!-- WERSJA 627: 4F/5F zwinięte, kalendarz klikany i przeciągany -->
 <!-- WERSJA 626: przeciąganie kodów kolumn drag & drop -->
 <!-- WERSJA 623: oceny na górze, kody kolumn zwijane domyślnie -->
@@ -158,6 +159,16 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
 }
 
 .calDay.dragOver{outline:3px dashed #0b4fa3;background:#e8f2ff!important}
+
+.planGrid{width:100%;min-width:950px;border-collapse:collapse}
+.planGrid th,.planGrid td{border:1px solid #cbd3dc;text-align:center;vertical-align:top;padding:5px}
+.planGrid th{background:#e8eef5}
+.planCell{min-height:78px;background:#fff;cursor:pointer}
+.planCell.dragOver{outline:3px dashed #0b4fa3;background:#e8f2ff!important}
+.planLesson{background:#eef7ff;border-left:4px solid #3485c8;border-radius:4px;padding:4px;margin:3px 0;text-align:left;font-size:11px;cursor:grab}
+.planLesson.other{background:#fff7dc;border-left-color:#d9a400}
+.planLesson:active{cursor:grabbing}
+.planMeta{font-size:10px;color:#555}
 </style>
 </head>
 <body>
@@ -186,6 +197,7 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
   <div class="tool" onclick="show('uwagi')"><div class="ico red"></div><div>Uwagi</div></div>
   <div class="tool" onclick="show('poczta')"><div class="ico blue"></div><div>Poczta</div></div>
   <div class="tool" onclick="show('kalendarz')"><div class="ico green"></div><div>Kalendarz</div></div>
+  <div class="tool" onclick="show('plan')"><div class="ico blue"></div><div>Plan</div></div>
   <div class="tool parentNoAccess" onclick="show('swiadectwo')"><div class="ico"></div><div>Świadectwo</div></div>
   <div class="tool teacherOnly" onclick="show('uczniowie')"><div class="ico blue"></div><div>Uczniowie</div></div>
   <div class="tool teacherOnly" onclick="show('konta')"><div class="ico green"></div><div>Konta</div></div>
@@ -291,6 +303,20 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
 
   
 
+
+    <div id="plan" class="page hidden">
+      <div class="card"><h2>Plan oddziału</h2><div class="body">
+        <div class="grid">
+          <select id="planClass"><option>6F</option><option>5F</option><option>4F</option></select>
+          <input id="planWeek" type="date">
+          <button class="primary teacherOnly" onclick="openPlanAdd()">Dodaj pozycję planu</button>
+          <button onclick="renderPlan()">Pokaż tydzień</button>
+        </div>
+        <p class="small">Kliknij komórkę, aby dodać lekcję. Przeciągnij wpis na inny dzień/godzinę, aby zmienić termin.</p>
+        <div id="planBox"></div>
+      </div></div>
+    </div>
+
     <div id="kalendarz" class="page hidden">
       <div class="card teacherOnly"><h2>Dodaj wydarzenie</h2><div class="body">
         <div class="grid">
@@ -339,6 +365,7 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
       <div class="menuItem" onclick="show('uwagi')">Uwagi</div>
       <div class="menuItem" onclick="show('poczta')">Skrzynka pocztowa</div>
       <div class="menuItem" onclick="show('kalendarz')">Kalendarz sprawdzianów</div>
+      <div class="menuItem" onclick="show('plan')">Plan oddziału</div>
       <div class="menuItem parentNoAccess" onclick="show('swiadectwo')">Drukuj świadectwo</div>
       <div class="menuItem teacherOnly" onclick="show('uczniowie')">Uczniowie</div>
       <div class="menuItem teacherOnly" onclick="show('konta')">Konta</div>
@@ -444,6 +471,25 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
   </div></div>
 </div>
 
+
+<div id="planModal" class="modalBg">
+  <div class="modal"><h3>Pozycja planu lekcji</h3><div class="modalBody">
+    <input id="planEditIndex" type="hidden">
+    <label>Klasa</label><select id="planModalClass"><option>6F</option><option>5F</option><option>4F</option></select>
+    <label>Dzień tygodnia</label><select id="planDay"><option value="1">Poniedziałek</option><option value="2">Wtorek</option><option value="3">Środa</option><option value="4">Czwartek</option><option value="5">Piątek</option></select>
+    <label>Nr lekcji</label><select id="planPeriod"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option></select>
+    <label>Typ</label><select id="planKind"><option value="subject">Przedmiot</option><option value="other">Inne zajęcia</option></select>
+    <label>Przedmiot / inne zajęcia</label><input id="planSubject" placeholder="np. Matematyka albo apel">
+    <label>Nauczyciel</label><input id="planTeacher" placeholder="np. Nauczyciel matematyki">
+    <label>Sala</label><input id="planRoom" placeholder="np. 12">
+    <label>Cykl terminu</label><select id="planCycle"><option value="weekly">co tydzień</option><option value="once">jednorazowo</option><option value="two_weeks">co dwa tygodnie</option></select>
+    <label>Data końcowa, gdy cykliczne</label><input id="planEndDate" type="date">
+    <button class="primary" onclick="savePlanLesson()">Zapisz</button>
+    <button class="danger" id="deletePlanBtn" onclick="deletePlanLesson()">Usuń</button>
+    <button onclick="planModal.style.display='none'">Anuluj</button>
+  </div></div>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
@@ -478,7 +524,7 @@ const defaultData={
     {no:"1",name:"Kowalski Czesław",email:"czeskowa34@edudziennik.local",password:"",parentEmail:"rodzic.czeslaw@example.com"},
     {no:"2",name:"Kowalski Rafał Paweł",email:"rafkowa12@edudziennik.local",password:"",parentEmail:"rekin123@interia.pl"}
   ],
-  columns:[],grades:{},finals:{},attendance:[],lessons:[],notes:[],parentMessages:[],events:[],messages:[]
+  columns:[],grades:{},finals:{},attendance:[],lessons:[],notes:[],parentMessages:[],events:[],messages:[],plans:[]
 };
 
 let db=structuredClone(defaultData);
@@ -506,6 +552,9 @@ function initSubjects(){
   }
   if(document.getElementById('eventDate')){
     eventDate.value = new Date().toISOString().slice(0,10);
+  }
+  if(document.getElementById('planWeek')){
+    planWeek.value=startOfWeek(new Date()).toISOString().slice(0,10);
   }
 }
 function now(){let d=new Date();return d.toLocaleDateString("pl-PL")+" "+d.toLocaleTimeString("pl-PL",{hour:"2-digit",minute:"2-digit"})}
@@ -646,6 +695,7 @@ onAuthStateChanged(auth, async (user)=>{
     if(!db.parentMessages) db.parentMessages = [];
     if(!db.messages) db.messages = [];
     if(!db.events) db.events = [];
+    if(!db.plans) db.plans = [];
     if(!db.exams) db.exams = [];
     if(!db.homework) db.homework = [];
     await setDoc(dataRef, db, {merge:false});
@@ -1547,7 +1597,7 @@ window.deleteMessage=async function(i){
 function renderAll(){
   try{
     txt('currentClass',currentCls()); txt('currentLesson',currentSubject()); txt('currentStudentText',selectedStudent||"—");
-    renderTree();renderSelects();renderStudents();renderAccounts();renderColumns();renderGrades();renderFinals();renderAttendance();renderLessons();renderNotes();try{renderMailbox();}catch(e){console.error(e);}renderCertSelects();try{renderCalendar();renderUpcomingEvents();}catch(e){}
+    renderTree();renderSelects();renderStudents();renderAccounts();renderColumns();renderGrades();renderFinals();renderAttendance();renderLessons();renderNotes();try{renderMailbox();}catch(e){console.error(e);}renderCertSelects();try{renderCalendar();renderUpcomingEvents();renderPlan();}catch(e){}
     document.querySelectorAll(".teacherOnly").forEach(e=>e.style.display=roleNow==="teacher"?"":"none");
     const clsSel=document.getElementById("classSelect"); if(clsSel) clsSel.style.display=roleNow==="teacher"?"":"none"; document.querySelectorAll(".parentNoAccess").forEach(e=>e.style.display=(roleNow==="parent"||roleNow==="student")?"none":"");
   }catch(err){
@@ -1768,6 +1818,144 @@ window.dropColumnHere=async function(e,targetCode,el){
   await save();
   renderAll();
 };
+
+
+/* ===== PLAN ODDZIAŁU ===== */
+function startOfWeek(d){
+  d=new Date(d);
+  const day=(d.getDay()+6)%7;
+  d.setDate(d.getDate()-day);
+  d.setHours(0,0,0,0);
+  return d;
+}
+function weekKeyFromDate(s){
+  return startOfWeek(s?new Date(s+"T00:00:00"):new Date()).toISOString().slice(0,10);
+}
+function dayName(n){return ["","Poniedziałek","Wtorek","Środa","Czwartek","Piątek"][Number(n)]||""}
+
+window.openPlanAdd=function(day,period){
+  if(roleNow!=="teacher")return;
+  planEditIndex.value="";
+  planModalClass.value=planClass?.value||currentCls();
+  planDay.value=String(day||1);
+  planPeriod.value=String(period||1);
+  planKind.value="subject";
+  planSubject.value=currentSubject();
+  planTeacher.value=currentUser?.name||"";
+  planRoom.value="";
+  planCycle.value="weekly";
+  planEndDate.value="";
+  deletePlanBtn.style.display="none";
+  planModal.style.display="flex";
+}
+window.openPlanEdit=function(i){
+  if(roleNow!=="teacher")return;
+  const p=(db.plans||[])[i]; if(!p)return;
+  planEditIndex.value=i;
+  planModalClass.value=p.cls||"6F";
+  planDay.value=String(p.day||1);
+  planPeriod.value=String(p.period||1);
+  planKind.value=p.kind||"subject";
+  planSubject.value=p.subject||"";
+  planTeacher.value=p.teacher||"";
+  planRoom.value=p.room||"";
+  planCycle.value=p.cycle||"weekly";
+  planEndDate.value=p.endDate||"";
+  deletePlanBtn.style.display="";
+  planModal.style.display="flex";
+}
+window.savePlanLesson=async function(){
+  if(roleNow!=="teacher")return;
+  db.plans=db.plans||[];
+  const obj={
+    cls:planModalClass.value,
+    week:weekKeyFromDate(planWeek?.value),
+    day:Number(planDay.value),
+    period:Number(planPeriod.value),
+    kind:planKind.value,
+    subject:planSubject.value.trim(),
+    teacher:planTeacher.value.trim(),
+    room:planRoom.value.trim(),
+    cycle:planCycle.value,
+    endDate:planEndDate.value,
+    updated:now()
+  };
+  const i=planEditIndex.value===""?-1:Number(planEditIndex.value);
+  if(i>=0&&db.plans[i]) db.plans[i]=obj;
+  else db.plans.push(obj);
+  await save();
+  planModal.style.display="none";
+  renderAll();
+}
+window.deletePlanLesson=async function(){
+  if(roleNow!=="teacher")return;
+  const i=Number(planEditIndex.value);
+  if(Number.isNaN(i)||!db.plans[i])return;
+  if(!confirm("Usunąć pozycję planu?"))return;
+  db.plans.splice(i,1);
+  await save();
+  planModal.style.display="none";
+  renderAll();
+}
+function planApplies(p,week){
+  if(p.cycle==="once") return p.week===week;
+  const base=new Date((p.week||week)+"T00:00:00");
+  const cur=new Date(week+"T00:00:00");
+  if(p.endDate && cur>new Date(p.endDate+"T00:00:00")) return false;
+  const diffWeeks=Math.round((cur-base)/(7*24*60*60*1000));
+  if(diffWeeks<0)return false;
+  if(p.cycle==="two_weeks")return diffWeeks%2===0;
+  return true;
+}
+window.startPlanDrag=function(ev,i){
+  if(roleNow!=="teacher"){ev.preventDefault();return;}
+  ev.dataTransfer.effectAllowed="move";
+  ev.dataTransfer.setData("text/plan-index",String(i));
+}
+window.allowPlanDrop=function(ev){
+  if(roleNow!=="teacher")return;
+  ev.preventDefault();
+  ev.currentTarget.classList.add("dragOver");
+}
+window.leavePlanDrop=function(ev){
+  ev.currentTarget.classList.remove("dragOver");
+}
+window.dropPlanOnCell=async function(ev,day,period){
+  if(roleNow!=="teacher")return;
+  ev.preventDefault();
+  ev.currentTarget.classList.remove("dragOver");
+  const i=Number(ev.dataTransfer.getData("text/plan-index"));
+  if(Number.isNaN(i)||!db.plans[i])return;
+  db.plans[i].day=Number(day);
+  db.plans[i].period=Number(period);
+  db.plans[i].week=weekKeyFromDate(planWeek?.value);
+  await save();
+  renderAll();
+}
+function renderPlan(){
+  const box=document.getElementById("planBox"); if(!box)return;
+  if(document.getElementById("planClass") && !planClass.value) planClass.value=currentCls();
+  const cls=planClass?.value||currentCls();
+  const week=weekKeyFromDate(planWeek?.value);
+  let out="<table class='planGrid'><tr><th>Lekcja</th>";
+  for(let d=1;d<=5;d++)out+=`<th>${dayName(d)}</th>`;
+  out+="</tr>";
+  for(let p=1;p<=8;p++){
+    out+=`<tr><th>${p}</th>`;
+    for(let d=1;d<=5;d++){
+      const items=(db.plans||[]).filter(x=>x.cls===cls&&Number(x.day)===d&&Number(x.period)===p&&planApplies(x,week));
+      out+=`<td class="planCell" onclick="openPlanAdd(${d},${p})" ondragover="allowPlanDrop(event)" ondragleave="leavePlanDrop(event)" ondrop="dropPlanOnCell(event,${d},${p})">`;
+      items.forEach(item=>{
+        const i=db.plans.indexOf(item);
+        out+=`<div class="planLesson ${item.kind==='other'?'other':''}" draggable="${roleNow==='teacher'}" onclick="event.stopPropagation();openPlanEdit(${i})" ondragstart="startPlanDrag(event,${i})"><b>${item.subject||"(bez nazwy)"}</b><div class="planMeta">${item.teacher||"—"}${item.room?" | sala "+item.room:""}<br>${item.cycle==="once"?"jednorazowo":item.cycle==="two_weeks"?"co dwa tygodnie":"co tydzień"}</div></div>`;
+      });
+      out+="</td>";
+    }
+    out+="</tr>";
+  }
+  out+="</table>";
+  box.innerHTML=out;
+}
 
 </script>
 </body>
