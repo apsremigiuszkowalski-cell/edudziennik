@@ -554,7 +554,7 @@ function initSubjects(){
     eventDate.value = new Date().toISOString().slice(0,10);
   }
   if(document.getElementById('planWeek')){
-    planWeek.value=startOfWeek(new Date()).toISOString().slice(0,10);
+    planWeek.value='2026-05-26';
   }
 }
 function now(){let d=new Date();return d.toLocaleDateString("pl-PL")+" "+d.toLocaleTimeString("pl-PL",{hour:"2-digit",minute:"2-digit"})}
@@ -1952,7 +1952,13 @@ function renderPlan(){
   const cls=planClass?.value||currentCls();
   const week=weekKeyFromDate(planWeek?.value);
   let out="<table class='planGrid'><tr><th>Lekcja</th>";
-  for(let d=1;d<=7;d++)out+=`<th>${dayName(d)}</th>`;
+  for(let d=1;d<=7;d++){
+      const base=startOfWeek(new Date(planWeek?.value||new Date()));
+      const dateObj=new Date(base);
+      dateObj.setDate(base.getDate()+(d-1));
+      const dateStr=dateObj.toLocaleDateString("pl-PL");
+      out+=`<th>${dayName(d)}<br><span style="font-size:10px;color:#666">${dateStr}</span></th>`;
+    }
   out+="</tr>";
   for(let p=1;p<=10;p++){
     out+=`<tr><th>${p}<br><span style="font-size:10px;color:#666">${lessonTimes[p]||""}</span></th>`;
