@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
+<!-- WERSJA 611: semestry, nagłówki średnich, K zielone -->
 <!-- WERSJA 610: poprawione oceny z minusem 5-, 4-, 3- -->
 <!-- WERSJA 607: dodana brakująca funkcja renderGrades, średnia 5.58 -->
 <!-- WERSJA 603: poprawiony import, średnia i dane matematyki -->
@@ -172,7 +173,13 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
         <div class="grid"><label>Kolor <input id="colColor" type="color" value="#cc3333"></label><button class="primary" onclick="addColumn()">Dodaj kolumnę</button></div>
       </div></div>
       <div class="card teacherOnly"><h2>Kody kolumn</h2><div class="body"><table id="columnsTable"></table></div></div>
-      <div class="card"><h2>Oceny bieżące 6F — wszyscy uczniowie razem</h2><div class="body"><table id="gradesTable"></table></div></div>
+      <div class="card"><h2>Oceny bieżące 6F — wszyscy uczniowie razem</h2><div class="body">
+        <div style="margin-bottom:8px">
+          <button id="semBtn1" class="primary" onclick="setGradeSemester('1')">I semestr</button>
+          <button id="semBtn2" onclick="setGradeSemester('2')">II semestr</button>
+        </div>
+        <table id="gradesTable"></table>
+      </div></div>
     </div>
 
     <div id="koncowe" class="page hidden">
@@ -362,6 +369,7 @@ const defaultData={
 
 let db=structuredClone(defaultData);
 let currentUser=null, roleNow="teacher", selectedStudent="Kowalski Czesław", editStudent="", editCode="", unsub=null;
+let activeGradeSemester="1";
 
 const $ = (id) => document.getElementById(id);
 function showEl(id, display="block"){ const el=$(id); if(el) el.style.display=display; }
@@ -540,6 +548,16 @@ onAuthStateChanged(auth, async (user)=>{
 window.show=function(id){if((roleNow==='parent'||roleNow==='student') && id==='swiadectwo'){alert('Brak dostępu do świadectw.');return;}document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));const page=$(id); if(page) page.classList.remove("hidden");renderAll()}
 window.chooseClass=function(c){classSelect.value=c; show("koncowe"); renderAll()}
 window.chooseStudent=function(n){if(roleNow==="teacher"){selectedStudent=n;renderAll()}}
+window.setGradeSemester=function(sem){
+  activeGradeSemester=String(sem);
+  const b1=document.getElementById("semBtn1");
+  const b2=document.getElementById("semBtn2");
+  if(b1&&b2){
+    b1.className=activeGradeSemester==="1"?"primary":"";
+    b2.className=activeGradeSemester==="2"?"primary":"";
+  }
+  renderAll();
+}
 
 function renderTree(){
   let html=`<div class="treeItem school">${db.school}</div>`;
@@ -692,7 +710,7 @@ window.addColumn=async function(){
   let code=colCode.value.trim(); if(!code)return alert("Wpisz kod.");
   let subject=currentSubject();
   if(db.columns.some(c=>c.code===code&&c.subject===subject))return alert("Taki kod już istnieje dla tego przedmiotu.");
-  db.columns.push({subject,code,desc:colDesc.value.trim(),weight:Number(colWeight.value),semester:colSemester.value,color:colColor.value});
+  db.columns.push({subject,code,desc:colDesc.value.trim(),weight:Number(colWeight.value),semester:(activeGradeSemester||colSemester.value),color:colColor.value});
   colCode.value=colDesc.value="";
   await save();renderAll();
 }
@@ -968,10 +986,13 @@ window.showAvgDetails=function(st,sem){
 
 function gradeColorClass(grade, code){
   grade=String(grade||"").trim();
+
+  // K1, K2, K3 mają być zawsze zielone, także "nb"
+  if(["K1","K2","K3"].includes(code)) return "g-green";
+
   if(["S1","S2","S3"].includes(code) || grade==="5-" || grade==="5+" && code==="S2" || grade==="nb") return "g-red";
   if(["A5","ODP1","ODP2"].includes(code) || (grade==="6" && ["A5","ODP1","ODP2"].includes(code))) return "g-blue";
   if(code==="PL2") return "g-purple";
-  if(["K1","K3"].includes(code) || (grade==="5" && code==="K1") || (grade==="5+" && code==="K1")) return "g-green";
   return "g-black";
 }
 function gradeBgClass(code, grade){ return ""; }
@@ -981,13 +1002,22 @@ function renderGrades(){
   const table = document.getElementById("gradesTable");
   if(!table) return;
 
+  const b1=document.getElementById("semBtn1");
+  const b2=document.getElementById("semBtn2");
+  if(b1&&b2){
+    b1.className=activeGradeSemester==="1"?"primary":"";
+    b2.className=activeGradeSemester==="2"?"primary":"";
+  }
+
   if(currentCls() !== "6F"){
     table.outerHTML = "<table id='gradesTable'><tr><td>Oceny bieżące są tylko w folderze 6F.</td></tr></table>";
     return;
   }
 
   const subject = currentSubject();
-  const cols = (db.columns || []).filter(c => c.subject === subject);
+  const sem = String(activeGradeSemester || "1");
+
+  const cols = (db.columns || []).filter(c => c.subject === subject && String(c.semester || "1") === sem);
   const studs = (roleNow === "student" || roleNow === "parent")
     ? (db.students || []).filter(s => s.name === selectedStudent)
     : (db.students || []);
@@ -995,11 +1025,16 @@ function renderGrades(){
   let out = "<table id='gradesTable' class='gradeSheet'>";
   out += "<tr class='weightRow'><th class='nr'></th><th class='studentName'></th>";
   cols.forEach(c => out += `<th>${Number(c.weight || 1).toFixed(1)}</th>`);
-  out += "<th>Śr. I</th><th>Śródr.</th><th>Śr. II</th><th>Roczna</th></tr>";
+
+  if(sem === "1"){
+    out += "<th>Średnia z okresu</th><th>Śródr.</th></tr>";
+  }else{
+    out += "<th>Średnia roczna</th><th>Roczna</th></tr>";
+  }
 
   out += "<tr class='codeRow'><th class='nr'>Nr</th><th>Uczeń</th>";
   cols.forEach(c => out += `<th title="${c.desc || ''}">${c.code}</th>`);
-  out += "<th></th><th></th><th></th><th></th></tr>";
+  out += "<th></th><th></th></tr>";
 
   studs.forEach(s => {
     out += `<tr><td class="nr">${s.no || ''}</td><td class="studentName">${s.name}</td>`;
@@ -1012,10 +1047,13 @@ function renderGrades(){
       out += `<td class="gradeCell" onclick="openGrade('${s.name}','${c.code}')" title="${x.desc || c.desc || ''}\n${x.date || ''}"><span class="gradeText ${cc}">${grade}</span></td>`;
     });
 
-    out += `<td><span class="avgLink" onclick="showAvgDetails('${s.name}',1)">${avg(s.name,1)}</span></td>`;
-    out += `<td>${finalCell("6F", subject, s.name, "srodroczna")}</td>`;
-    out += `<td><span class="avgLink" onclick="showAvgDetails('${s.name}',2)">${avg(s.name,2)}</span></td>`;
-    out += `<td>${finalCell("6F", subject, s.name, "roczna")}</td></tr>`;
+    if(sem === "1"){
+      out += `<td><span class="avgLink" onclick="showAvgDetails('${s.name}',1)">${avg(s.name,1)}</span></td>`;
+      out += `<td>${finalCell("6F", subject, s.name, "srodroczna")}</td></tr>`;
+    }else{
+      out += `<td><span class="avgLink" onclick="showAvgDetails('${s.name}',2)">${avg(s.name,2)}</span></td>`;
+      out += `<td>${finalCell("6F", subject, s.name, "roczna")}</td></tr>`;
+    }
   });
 
   out += "</table>";
