@@ -476,8 +476,8 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
   <div class="modal"><h3>Pozycja planu lekcji</h3><div class="modalBody">
     <input id="planEditIndex" type="hidden">
     <label>Klasa</label><select id="planModalClass"><option>6F</option><option>5F</option><option>4F</option></select>
-    <label>Dzień tygodnia</label><select id="planDay"><option value="1">Poniedziałek</option><option value="2">Wtorek</option><option value="3">Środa</option><option value="4">Czwartek</option><option value="5">Piątek</option></select>
-    <label>Nr lekcji</label><select id="planPeriod"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option></select>
+    <label>Dzień tygodnia</label><select id="planDay"><option value="1">Poniedziałek</option><option value="2">Wtorek</option><option value="3">Środa</option><option value="4">Czwartek</option><option value="5">Piątek</option><option value="6">Sobota</option><option value="7">Niedziela</option></select>
+    <label>Nr lekcji</label><select id="planPeriod"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option></select>
     <label>Typ</label><select id="planKind"><option value="subject">Przedmiot</option><option value="other">Inne zajęcia</option></select>
     <label>Przedmiot / inne zajęcia</label><input id="planSubject" placeholder="np. Matematyka albo apel">
     <label>Nauczyciel</label><input id="planTeacher" placeholder="np. Nauczyciel matematyki">
@@ -1821,6 +1821,20 @@ window.dropColumnHere=async function(e,targetCode,el){
 
 
 /* ===== PLAN ODDZIAŁU ===== */
+
+const lessonTimes = {
+  1:"12:00–12:45",
+  2:"12:55–13:40",
+  3:"13:50–14:35",
+  4:"14:45–15:30",
+  5:"15:40–16:25",
+  6:"16:35–17:20",
+  7:"17:30–18:15",
+  8:"18:25–19:10",
+  9:"19:20–20:05",
+  10:"20:15–21:00"
+};
+
 function startOfWeek(d){
   d=new Date(d);
   const day=(d.getDay()+6)%7;
@@ -1831,7 +1845,7 @@ function startOfWeek(d){
 function weekKeyFromDate(s){
   return startOfWeek(s?new Date(s+"T00:00:00"):new Date()).toISOString().slice(0,10);
 }
-function dayName(n){return ["","Poniedziałek","Wtorek","Środa","Czwartek","Piątek"][Number(n)]||""}
+function dayName(n){return ["","Poniedziałek","Wtorek","Środa","Czwartek","Piątek","Sobota","Niedziela"][Number(n)]||""}
 
 window.openPlanAdd=function(day,period){
   if(roleNow!=="teacher")return;
@@ -1938,11 +1952,11 @@ function renderPlan(){
   const cls=planClass?.value||currentCls();
   const week=weekKeyFromDate(planWeek?.value);
   let out="<table class='planGrid'><tr><th>Lekcja</th>";
-  for(let d=1;d<=5;d++)out+=`<th>${dayName(d)}</th>`;
+  for(let d=1;d<=7;d++)out+=`<th>${dayName(d)}</th>`;
   out+="</tr>";
-  for(let p=1;p<=8;p++){
-    out+=`<tr><th>${p}</th>`;
-    for(let d=1;d<=5;d++){
+  for(let p=1;p<=10;p++){
+    out+=`<tr><th>${p}<br><span style="font-size:10px;color:#666">${lessonTimes[p]||""}</span></th>`;
+    for(let d=1;d<=7;d++){
       const items=(db.plans||[]).filter(x=>x.cls===cls&&Number(x.day)===d&&Number(x.period)===p&&planApplies(x,week));
       out+=`<td class="planCell" onclick="openPlanAdd(${d},${p})" ondragover="allowPlanDrop(event)" ondragleave="leavePlanDrop(event)" ondrop="dropPlanOnCell(event,${d},${p})">`;
       items.forEach(item=>{
