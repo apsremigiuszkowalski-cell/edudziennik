@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
+<!-- WERSJA 617: żółte obramowanie poprawy i data oceny -->
 <!-- WERSJA 616: naprawiona stara ocena / poprawiona z -->
 <!-- WERSJA 615: zwijane klasy i praca klasowa w kalendarzu -->
 <!-- WERSJA 614: naprawione logowanie i initSubjects -->
@@ -122,6 +123,18 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
 .attachmentChip{display:inline-block;border:1px solid #b7c4d0;background:#eef3f8;padding:3px 6px;border-radius:12px;margin:2px}
 .semSwitch{margin-bottom:8px}
 .semSwitch button{margin-right:6px}
+
+.gradeCell.improvedGrade{
+  border:2px solid #ffd400!important;
+  box-shadow:inset 0 0 0 1px #fff4a8;
+}
+.gradeDateMark{
+  font-size:9px;
+  color:#666;
+  display:block;
+  line-height:1.1;
+}
+
 </style>
 </head>
 <body>
@@ -308,7 +321,7 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
   <div class="modal"><h3>Wstaw ocenę bieżącą</h3><div class="modalBody">
     <label>Uczeń</label><input id="gmStudent" readonly><label>Kod</label><input id="gmCode" readonly>
     <label>Ocena — wpisz sam</label><input id="gmGrade" placeholder="np. 6, -6, 5+, -5, 4+, -4, 3+, -3, 2+, nb"><label>Poprawiana ocena / stara ocena</label><input id="gmOldGrade" placeholder="np. 2, jeśli ocena została poprawiona">
-    <label>Opis</label><input id="gmDesc">
+    <label>Data i godzina wystawienia</label><input id="gmDate" type="datetime-local"><label>Opis</label><input id="gmDesc">
     <button class="primary" onclick="saveGrade()">Zapisz</button><button onclick="gradeModal.style.display='none'">Anuluj</button>
   </div></div>
 </div>
@@ -1094,8 +1107,12 @@ function renderGrades(){
     cols.forEach(c=>{
       const key="6F|"+subject+"|"+s.name+"|"+c.code;
       const x=(db.grades||{})[key]||{}, grade=x.grade||"", cc=gradeColorClass(grade,c.code);
-      const oldMark=x.oldGrade ? `<span class="oldGradeMark">popr. z ${x.oldGrade}</span>` : "";
-      out+=`<td class="gradeCell" onclick="openGrade('${s.name}','${c.code}')" title="${x.desc||c.desc||''}\n${x.date||''}${x.oldGrade?'\nPoprawiona z: '+x.oldGrade:''}"><span class="gradeText ${cc}">${grade}</span>${oldMark}</td>`;
+      const oldMark=x.oldGrade ? `` : "";
+      const dateMark=x.date ? `<span class="gradeDateMark">${x.date}</span>` : "";
+      const improvedClass=x.oldGrade ? " improvedGrade" : "";
+      out+=`<td class="gradeCell${improvedClass}" onclick="openGrade('${s.name}','${c.code}')" title="${x.desc||c.desc||''}
+${x.date||''}${x.oldGrade?'
+Poprawiona z: '+x.oldGrade:''}"><span class="gradeText ${cc}">${grade}</span>${dateMark}</td>`;
     });
     if(sem==="1"){
       out+=`<td><span class="avgLink" onclick="showAvgDetails('${s.name}',1)">${avg(s.name,1)}</span></td>`;
@@ -1116,18 +1133,58 @@ function renderFinals(){
   studs.forEach(s=>subjects.forEach(sub=>html+=`<tr><td>${cls}</td><td class="name">${s.name}</td><td>${sub}</td><td>${finalCell(cls,sub,s.name,"srodroczna")}</td><td>${finalCell(cls,sub,s.name,"roczna")}</td></tr>`));
   finalsTable.innerHTML=html;
 }
+
+function toDateTimeLocalValue(s){
+  if(!s)return "";
+  // Obsługuje zapis ISO lub polski format z now()
+  const d = new Date(s);
+  if(!isNaN(d.getTime())){
+    const pad=n=>String(n).padStart(2,"0");
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+  return "";
+}
+function dateTimeLocalNow(){
+  const d=new Date();
+  const pad=n=>String(n).padStart(2,"0");
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function formatGradeDate(s){
+  if(!s)return "";
+  const d=new Date(s);
+  if(isNaN(d.getTime()))return s;
+  return d.toLocaleDateString("pl-PL")+" "+d.toLocaleTimeString("pl-PL",{hour:"2-digit",minute:"2-digit"});
+}
+
 window.openGrade=function(st,code){
   if(roleNow!=="teacher")return;
   if(roleNow!=="teacher"||currentCls()!=="6F")return;
   editStudent=st; editCode=code;
   let x=db.grades["6F|"+currentSubject()+"|"+st+"|"+code]||{};
-  gmStudent.value=st; gmCode.value=code; gmGrade.value=x.grade||""; gmOldGrade.value=x.oldGrade||""; gmDesc.value=x.desc||"";
+  gmStudent.value=st;
+  gmCode.value=code;
+  gmGrade.value=x.grade||"";
+  gmOldGrade.value=x.oldGrade||"";
+  gmDate.value=toDateTimeLocalValue(x.dateISO||x.date)||dateTimeLocalNow();
+  gmDesc.value=x.desc||"";
   gradeModal.style.display="flex";
 }
 window.saveGrade=async function(){
   if(roleNow!=="teacher")return;
-  db.grades["6F|"+currentSubject()+"|"+editStudent+"|"+editCode]={grade:gmGrade.value.trim(),oldGrade:gmOldGrade.value.trim(),desc:gmDesc.value,date:now(),improved:!!gmOldGrade.value.trim()};
-  await save();renderAll();gradeModal.style.display="none";
+  const chosen=gmDate.value || dateTimeLocalNow();
+  const dateISO=new Date(chosen).toISOString();
+  const key="6F|"+currentSubject()+"|"+editStudent+"|"+editCode;
+  db.grades[key]={
+    grade:gmGrade.value.trim(),
+    oldGrade:gmOldGrade.value.trim(),
+    desc:gmDesc.value,
+    date:formatGradeDate(dateISO),
+    dateISO:dateISO,
+    improved:!!gmOldGrade.value.trim()
+  };
+  await save();
+  renderAll();
+  gradeModal.style.display="none";
 }
 window.addAttendance=async function(){db.attendance.push({cls:currentCls(),subject:currentSubject(),student:attStudent.value,status:attStatus.value,date:now()});await save();renderAll()}
 function renderAttendance(){
