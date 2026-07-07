@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
+<!-- WERSJA 622: poprawiona ocena = tylko pełne żółte obramowanie, data tylko po kliknięciu -->
 <!-- WERSJA 621: naprawiony błąd JS blokujący logowanie -->
 <!-- WERSJA 620: logowanie naprawione, tylko żółte obramowanie poprawy -->
 <!-- WERSJA 617: żółte obramowanie poprawy i data oceny -->
@@ -127,8 +128,11 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
 .semSwitch button{margin-right:6px}
 
 .gradeCell.improvedGrade{
-  border:2px solid #ffd400!important;
-  box-shadow:inset 0 0 0 1px #fff4a8;
+  position:relative!important;
+  outline:2px solid #ffd400!important;
+  outline-offset:-2px!important;
+  box-shadow:inset 0 0 0 2px #ffd400!important;
+  background:#fffbe6!important;
 }
 .gradeDateMark{
   font-size:9px;
@@ -1110,7 +1114,7 @@ function renderGrades(){
       const key="6F|"+subject+"|"+s.name+"|"+c.code;
       const x=(db.grades||{})[key]||{}, grade=x.grade||"", cc=gradeColorClass(grade,c.code);
       const oldMark="";
-      const dateMark=x.date ? `<span class="gradeDateMark">${x.date}</span>` : "";
+      const dateMark="";
       const improvedClass=x.oldGrade ? " improvedGrade" : "";
       out+=`<td class="gradeCell${improvedClass}" onclick="openGrade('${s.name}','${c.code}')" title="${x.desc||c.desc||''} ${x.date||''} ${x.oldGrade?'Poprawiona z: '+x.oldGrade:''}"><span class="gradeText ${cc}">${grade}</span>${oldMark}${dateMark}</td>`;
     });
