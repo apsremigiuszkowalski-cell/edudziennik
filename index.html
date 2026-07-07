@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
+<!-- WERSJA 614: naprawione logowanie i initSubjects -->
+<!-- WERSJA 613: naprawione logowanie po błędzie duplikatu zmiennych -->
 <!-- WERSJA 612: kalendarz, załączniki, pełny układ semestrów -->
 <!-- WERSJA 611: semestry, nagłówki średnich, K zielone -->
 <!-- WERSJA 610: poprawione oceny z minusem 5-, 4-, 3- -->
@@ -412,8 +414,6 @@ let db=structuredClone(defaultData);
 let currentUser=null, roleNow="teacher", selectedStudent="Kowalski Czesław", editStudent="", editCode="", unsub=null;
 let activeGradeSemester="1";
 let calendarMonth=new Date();
-let activeGradeSemester="1";
-let calendarMonth=new Date();
 
 const $ = (id) => document.getElementById(id);
 function showEl(id, display="block"){ const el=$(id); if(el) el.style.display=display; }
@@ -426,11 +426,15 @@ function exists(id){ return !!$(id); }
 
 
 function initSubjects(){
-  htmlSet('lessonSelect',subjects.map(s=>`<option>${s}</option>`).join(""));
-  setVal('lessonSelect',"Matematyka");
-  if(document.getElementById('eventSubject')) htmlSet('eventSubject',subjects.map(s=>`<option>${s}</option>`).join(""));
-  if(document.getElementById('eventDate')) eventDate.value=new Date().toISOString().slice(0,10);
-}</option>`).join("")); setVal('lessonSelect',"Matematyka")}
+  htmlSet('lessonSelect', subjects.map(s=>`<option>${s}</option>`).join(""));
+  setVal('lessonSelect', "Matematyka");
+  if(document.getElementById('eventSubject')){
+    htmlSet('eventSubject', subjects.map(s=>`<option>${s}</option>`).join(""));
+  }
+  if(document.getElementById('eventDate')){
+    eventDate.value = new Date().toISOString().slice(0,10);
+  }
+}
 function now(){let d=new Date();return d.toLocaleDateString("pl-PL")+" "+d.toLocaleTimeString("pl-PL",{hour:"2-digit",minute:"2-digit"})}
 function currentSubject(){return val('lessonSelect')}
 function currentCls(){return val('classSelect')}
