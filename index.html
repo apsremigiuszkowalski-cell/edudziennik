@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
+<!-- WERSJA 619: logowanie OK, tylko żółte obramowanie poprawy -->
 <!-- WERSJA 617: żółte obramowanie poprawy i data oceny -->
 <!-- WERSJA 616: naprawiona stara ocena / poprawiona z -->
 <!-- WERSJA 615: zwijane klasy i praca klasowa w kalendarzu -->
@@ -1107,12 +1108,12 @@ function renderGrades(){
     cols.forEach(c=>{
       const key="6F|"+subject+"|"+s.name+"|"+c.code;
       const x=(db.grades||{})[key]||{}, grade=x.grade||"", cc=gradeColorClass(grade,c.code);
-      const oldMark=x.oldGrade ? `` : "";
+      const oldMark="";
       const dateMark=x.date ? `<span class="gradeDateMark">${x.date}</span>` : "";
       const improvedClass=x.oldGrade ? " improvedGrade" : "";
       out+=`<td class="gradeCell${improvedClass}" onclick="openGrade('${s.name}','${c.code}')" title="${x.desc||c.desc||''}
 ${x.date||''}${x.oldGrade?'
-Poprawiona z: '+x.oldGrade:''}"><span class="gradeText ${cc}">${grade}</span>${dateMark}</td>`;
+Poprawiona z: '+x.oldGrade:''}"><span class="gradeText ${cc}">${grade}</span>${oldMark}${dateMark}</td>`;
     });
     if(sem==="1"){
       out+=`<td><span class="avgLink" onclick="showAvgDetails('${s.name}',1)">${avg(s.name,1)}</span></td>`;
