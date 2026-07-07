@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
+<!-- WERSJA 626: przeciąganie kodów kolumn drag & drop -->
 <!-- WERSJA 623: oceny na górze, kody kolumn zwijane domyślnie -->
 <!-- WERSJA 622: poprawiona ocena = tylko pełne żółte obramowanie, data tylko po kliknięciu -->
 <!-- WERSJA 621: naprawiony błąd JS blokujący logowanie -->
@@ -142,6 +143,18 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
   line-height:1.1;
 }
 
+
+.draggableCode{
+  cursor:grab;
+  user-select:none;
+}
+.draggableCode:active{
+  cursor:grabbing;
+}
+.draggableCode.dragOver{
+  outline:2px dashed #0b4fa3;
+  background:#e8f2ff!important;
+}
 </style>
 </head>
 <body>
@@ -1128,7 +1141,7 @@ function renderGrades(){
   cols.forEach(c=>out+=`<th>${Number(c.weight||1).toFixed(1)}</th>`);
   out+=sem==="1"?"<th>Średnia z okresu</th><th>Proponowane</th><th>Wystawienie</th></tr>":"<th>Średnia z okresu</th><th>Średnia roczna</th><th>Proponowane</th><th>Wystawienie</th></tr>";
   out+="<tr class='codeRow'><th class='nr'>Nr</th><th>Uczeń</th>";
-  cols.forEach(c=>out+=`<th title="${c.desc||''}">${c.code}</th>`);
+  cols.forEach(c=>out+=`<th class="draggableCode" draggable="${roleNow==='teacher'}" title="Przeciągnij, aby zmienić kolejność: ${c.desc||''}" ondragstart="startColumnDrag(event,'${c.code}')" ondragover="columnDragOver(event,this)" ondragleave="columnDragLeave(this)" ondrop="dropColumnHere(event,'${c.code}',this)">${c.code}</th>`);
   out+=sem==="1"?"<th></th><th></th><th></th></tr>":"<th></th><th></th><th></th><th></th></tr>";
   studs.forEach(s=>{
     out+=`<tr><td class="nr">${s.no||''}</td><td class="studentName">${s.name}</td>`;
@@ -1579,6 +1592,56 @@ window.moveColumnRight=function(code){
     save().then(()=>renderAll());
   }
 }
+
+
+/* ===== Drag & drop kodów kolumn w ocenach ===== */
+let draggedColumnCode=null;
+
+window.startColumnDrag=function(e,code){
+  if(roleNow!=="teacher"){
+    e.preventDefault();
+    return;
+  }
+  draggedColumnCode=code;
+  e.dataTransfer.effectAllowed="move";
+  e.dataTransfer.setData("text/plain",code);
+};
+
+window.columnDragOver=function(e,el){
+  if(roleNow!=="teacher")return;
+  e.preventDefault();
+  el.classList.add("dragOver");
+};
+
+window.columnDragLeave=function(el){
+  el.classList.remove("dragOver");
+};
+
+window.dropColumnHere=async function(e,targetCode,el){
+  if(roleNow!=="teacher")return;
+  e.preventDefault();
+  el.classList.remove("dragOver");
+
+  const sourceCode=draggedColumnCode || e.dataTransfer.getData("text/plain");
+  draggedColumnCode=null;
+
+  if(!sourceCode || sourceCode===targetCode)return;
+
+  const subject=currentSubject();
+  const sem=String(activeGradeSemester||"1");
+
+  const sourceIndex=db.columns.findIndex(c=>c.subject===subject && String(c.semester||"1")===sem && c.code===sourceCode);
+  const targetIndex=db.columns.findIndex(c=>c.subject===subject && String(c.semester||"1")===sem && c.code===targetCode);
+
+  if(sourceIndex<0 || targetIndex<0)return;
+
+  const [moved]=db.columns.splice(sourceIndex,1);
+  const newTargetIndex=db.columns.findIndex(c=>c.subject===subject && String(c.semester||"1")===sem && c.code===targetCode);
+  db.columns.splice(newTargetIndex,0,moved);
+
+  await save();
+  renderAll();
+};
 
 </script>
 </body>
