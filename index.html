@@ -216,14 +216,14 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
         <table id="gradesTable"></table>
       </div></div>
 
-      <div class="card teacherOnly">
+      <div class="card teacherOnly" style="margin-top:25px;">
         <h2 style="cursor:pointer" onclick="toggleColumnsPanel()">Kody kolumn <span id="columnsToggleIcon">▶</span></h2>
         <div class="body" id="columnsPanelBody" style="display:none">
           <table id="columnsTable"></table>
         </div>
       </div>
 
-      <div class="card teacherOnly"><h2>Dodaj kolumnę ocen bieżących 6F</h2><div class="body">
+      <div class="card teacherOnly" style="margin-top:20px;"><h2>Dodaj kolumnę ocen bieżących 6F</h2><div class="body">
         <div class="grid"><input id="colCode" placeholder="Kod, np. s1"><input id="colDesc" placeholder="Opis"><select id="colWeight"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select><select id="colSemester"><option value="1">Śródroczne</option><option value="2">Drugie półrocze</option></select></div>
         <div class="grid"><label>Kolor <input id="colColor" type="color" value="#cc3333"></label><button class="primary" onclick="addColumn()">Dodaj kolumnę</button></div>
       </div></div>
@@ -1562,6 +1562,23 @@ async function readMessageFiles(){
   } return res;
 }
 function attachmentHtml(atts){return atts&&atts.length?`<div class="attachmentList">📎 ${atts.length} załącznik(i): `+atts.map(a=>`<a class="attachmentChip" href="${a.data}" download="${a.name}">${a.name}</a>`).join(" ")+"</div>":""}
+
+
+// ===== Przesuwanie kodów kolumn =====
+window.moveColumnLeft=function(code){
+  const i=(db.columns||[]).findIndex(c=>c.code===code);
+  if(i>0){
+    [db.columns[i-1],db.columns[i]]=[db.columns[i],db.columns[i-1]];
+    save().then(()=>renderAll());
+  }
+}
+window.moveColumnRight=function(code){
+  const i=(db.columns||[]).findIndex(c=>c.code===code);
+  if(i>=0 && i<(db.columns.length-1)){
+    [db.columns[i+1],db.columns[i]]=[db.columns[i],db.columns[i+1]];
+    save().then(()=>renderAll());
+  }
+}
 
 </script>
 </body>
