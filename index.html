@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
+<!-- WERSJA 627: 4F/5F zwinięte, kalendarz klikany i przeciągany -->
 <!-- WERSJA 626: przeciąganie kodów kolumn drag & drop -->
 <!-- WERSJA 623: oceny na górze, kody kolumn zwijane domyślnie -->
 <!-- WERSJA 622: poprawiona ocena = tylko pełne żółte obramowanie, data tylko po kliknięciu -->
@@ -155,6 +156,8 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
   outline:2px dashed #0b4fa3;
   background:#e8f2ff!important;
 }
+
+.calDay.dragOver{outline:3px dashed #0b4fa3;background:#e8f2ff!important}
 </style>
 </head>
 <body>
@@ -415,6 +418,32 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
   </div></div>
 </div>
 
+
+<div id="eventModal" class="modalBg">
+  <div class="modal"><h3>Szczegóły wydarzenia</h3><div class="modalBody">
+    <div id="eventDetails"></div>
+    <button class="primary teacherOnly" id="editEventBtn">Edytuj</button>
+    <button class="danger teacherOnly" id="deleteEventBtn">Usuń</button>
+    <button onclick="eventModal.style.display='none'">Zamknij</button>
+  </div></div>
+</div>
+
+<div id="editEventModal" class="modalBg">
+  <div class="modal"><h3>Edytuj wydarzenie</h3><div class="modalBody">
+    <input id="editEventIndex" type="hidden">
+    <label>Typ</label>
+    <select id="editEventType"><option value="sprawdzian">Sprawdzian</option><option value="praca_klasowa">Praca klasowa</option><option value="kartkowka">Kartkówka</option><option value="odpowiedz">Odpowiedź ustna</option><option value="praca_domowa">Praca domowa</option><option value="projekt">Projekt</option></select>
+    <label>Data</label><input id="editEventDate" type="date">
+    <label>Godzina</label><input id="editEventTime" type="time">
+    <label>Klasa</label><select id="editEventClass"><option>6F</option><option>5F</option><option>4F</option></select>
+    <label>Przedmiot</label><select id="editEventSubject"></select>
+    <label>Temat</label><input id="editEventTopic">
+    <label>Opis / uwagi</label><textarea id="editEventDesc" rows="4"></textarea>
+    <button class="primary" onclick="saveCalendarEventEdit()">Zapisz zmiany</button>
+    <button onclick="editEventModal.style.display='none'">Anuluj</button>
+  </div></div>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
@@ -457,7 +486,7 @@ let currentUser=null, roleNow="teacher", selectedStudent="Kowalski Czesław", ed
 let activeGradeSemester="1";
 let calendarMonth=new Date();
 let columnsCollapsed=true;
-let collapsedClasses={};
+let collapsedClasses={"4F":true,"5F":true,"6F":false};
 
 const $ = (id) => document.getElementById(id);
 function showEl(id, display="block"){ const el=$(id); if(el) el.style.display=display; }
@@ -1532,6 +1561,7 @@ initSubjects(); if(document.getElementById('lessonDate')) lessonDate.value=dateO
 /* ===== KALENDARZ I ZAŁĄCZNIKI — WERSJA 612 ===== */
 function eventTypeLabel(t){return {sprawdzian:"Sprawdzian",praca_klasowa:"Praca klasowa",kartkowka:"Kartkówka",odpowiedz:"Odpowiedź ustna",praca_domowa:"Praca domowa",projekt:"Projekt"}[t]||t}
 function eventClassName(t){if(t==="sprawdzian"||t==="praca_klasowa")return"test";if(t==="kartkowka")return"quiz";if(t==="praca_domowa")return"homework";return""}
+
 window.addCalendarEvent=async function(){
   if(roleNow!=="teacher")return;
   if(!eventDate.value||!eventTopic.value.trim())return alert("Wpisz datę i temat.");
@@ -1540,14 +1570,103 @@ window.addCalendarEvent=async function(){
   eventTopic.value=eventDesc.value=eventTime.value="";
   await save();renderAll();
 }
-window.deleteCalendarEvent=async function(i){if(roleNow!=="teacher")return;if(!confirm("Usunąć wydarzenie?"))return;db.events.splice(i,1);await save();renderAll();}
-window.changeCalendarMonth=function(delta){calendarMonth.setMonth(calendarMonth.getMonth()+delta);renderCalendar();}
+
+window.openCalendarEvent=function(i){
+  const e=(db.events||[])[i];
+  if(!e)return;
+  eventDetails.innerHTML=`<p><b>Typ:</b> ${eventTypeLabel(e.type)}</p>
+    <p><b>Data:</b> ${e.date} ${e.time||""}</p>
+    <p><b>Klasa:</b> ${e.cls}</p>
+    <p><b>Przedmiot:</b> ${e.subject}</p>
+    <p><b>Temat:</b> ${e.topic}</p>
+    <p><b>Opis:</b><br>${e.desc||"—"}</p>`;
+  editEventBtn.onclick=()=>openCalendarEventEdit(i);
+  deleteEventBtn.onclick=()=>deleteCalendarEvent(i);
+  eventModal.style.display="flex";
+}
+
+window.openCalendarEventEdit=function(i){
+  const e=(db.events||[])[i];
+  if(!e)return;
+  editEventIndex.value=i;
+  editEventType.value=e.type||"sprawdzian";
+  editEventDate.value=e.date||"";
+  editEventTime.value=e.time||"";
+  editEventClass.value=e.cls||"6F";
+  editEventSubject.value=e.subject||currentSubject();
+  editEventTopic.value=e.topic||"";
+  editEventDesc.value=e.desc||"";
+  eventModal.style.display="none";
+  editEventModal.style.display="flex";
+}
+
+window.saveCalendarEventEdit=async function(){
+  if(roleNow!=="teacher")return;
+  const i=Number(editEventIndex.value);
+  if(!db.events[i])return;
+  db.events[i]={
+    ...db.events[i],
+    type:editEventType.value,
+    date:editEventDate.value,
+    time:editEventTime.value,
+    cls:editEventClass.value,
+    subject:editEventSubject.value,
+    topic:editEventTopic.value.trim(),
+    desc:editEventDesc.value.trim()
+  };
+  await save();
+  editEventModal.style.display="none";
+  renderAll();
+}
+
+window.deleteCalendarEvent=async function(i){
+  if(roleNow!=="teacher")return;
+  if(!confirm("Usunąć wydarzenie?"))return;
+  db.events.splice(i,1);
+  await save();
+  eventModal.style.display="none";
+  renderAll();
+}
+
+window.changeCalendarMonth=function(delta){
+  calendarMonth.setMonth(calendarMonth.getMonth()+delta);
+  renderCalendar();
+}
+
+window.startEventDrag=function(ev,i){
+  if(roleNow!=="teacher"){ev.preventDefault();return;}
+  ev.dataTransfer.effectAllowed="move";
+  ev.dataTransfer.setData("text/event-index",String(i));
+}
+
+window.allowEventDrop=function(ev){
+  if(roleNow!=="teacher")return;
+  ev.preventDefault();
+  ev.currentTarget.classList.add("dragOver");
+}
+
+window.leaveEventDrop=function(ev){
+  ev.currentTarget.classList.remove("dragOver");
+}
+
+window.dropEventOnDate=async function(ev,dateStr){
+  if(roleNow!=="teacher")return;
+  ev.preventDefault();
+  ev.currentTarget.classList.remove("dragOver");
+  const i=Number(ev.dataTransfer.getData("text/event-index"));
+  if(Number.isNaN(i)||!db.events[i])return;
+  db.events[i].date=dateStr;
+  await save();
+  renderAll();
+}
+
 function renderUpcomingEvents(){
   const box=document.getElementById("upcomingEvents"); if(!box)return;
   const today=new Date(); today.setHours(0,0,0,0); const end=new Date(today); end.setDate(end.getDate()+7);
   const events=(db.events||[]).filter(e=>{const d=new Date(e.date+"T00:00:00");return d>=today&&d<=end&&(roleNow==="teacher"||e.cls===currentCls())}).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
-  box.innerHTML=events.length?events.map(e=>`<div class="eventSoon"><b>${eventTypeLabel(e.type)}</b> — ${e.date} ${e.time||""}<br>${e.cls}, ${e.subject}: ${e.topic}</div>`).join(""):"<p class='small'>Brak wydarzeń w najbliższych 7 dniach.</p>";
+  box.innerHTML=events.length?events.map(e=>{const i=db.events.indexOf(e);return `<div class="eventSoon" onclick="openCalendarEvent(${i})"><b>${eventTypeLabel(e.type)}</b> — ${e.date} ${e.time||""}<br>${e.cls}, ${e.subject}: ${e.topic}</div>`}).join(""):"<p class='small'>Brak wydarzeń w najbliższych 7 dniach.</p>";
 }
+
 function renderCalendar(){
   const box=document.getElementById("calendarBox"), title=document.getElementById("calendarTitle"), table=document.getElementById("eventsTable");
   if(!box||!title||!table)return;
@@ -1557,16 +1676,23 @@ function renderCalendar(){
   for(let i=0;i<start;i++)out+="<div class='calDay'></div>";
   for(let day=1;day<=last.getDate();day++){
     const dateStr=`${y}-${String(m+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
-    const ev=(db.events||[]).filter(e=>e.date===dateStr&&(roleNow==="teacher"||e.cls===currentCls()));
-    out+=`<div class="calDay"><div class="calDate">${day}</div>`;
-    ev.forEach(e=>out+=`<div class="calEvent ${eventClassName(e.type)}" title="${e.desc||""}">${eventTypeLabel(e.type)}<br>${e.subject}: ${e.topic}</div>`);
+    const evs=(db.events||[]).filter(e=>e.date===dateStr&&(roleNow==="teacher"||e.cls===currentCls()));
+    out+=`<div class="calDay" ondragover="allowEventDrop(event)" ondragleave="leaveEventDrop(event)" ondrop="dropEventOnDate(event,'${dateStr}')"><div class="calDate">${day}</div>`;
+    evs.forEach(e=>{
+      const i=db.events.indexOf(e);
+      out+=`<div class="calEvent ${eventClassName(e.type)}" draggable="${roleNow==='teacher'}" ondragstart="startEventDrag(event,${i})" onclick="openCalendarEvent(${i})" title="${e.desc||""}">${eventTypeLabel(e.type)}<br>${e.subject}: ${e.topic}</div>`;
+    });
     out+="</div>";
   }
   out+="</div>"; box.innerHTML=out;
   let rows="<tr><th>Data</th><th>Godz.</th><th>Typ</th><th>Klasa</th><th>Przedmiot</th><th>Temat</th><th>Opis</th><th class='teacherOnly'>Akcja</th></tr>";
-  (db.events||[]).filter(e=>roleNow==="teacher"||e.cls===currentCls()).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time)).forEach(e=>{const i=db.events.indexOf(e);rows+=`<tr><td>${e.date}</td><td>${e.time||"—"}</td><td>${eventTypeLabel(e.type)}</td><td>${e.cls}</td><td>${e.subject}</td><td>${e.topic}</td><td>${e.desc||"—"}</td><td class="teacherOnly"><button class="danger" onclick="deleteCalendarEvent(${i})">Usuń</button></td></tr>`});
+  (db.events||[]).filter(e=>roleNow==="teacher"||e.cls===currentCls()).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time)).forEach(e=>{
+    const i=db.events.indexOf(e);
+    rows+=`<tr onclick="openCalendarEvent(${i})"><td>${e.date}</td><td>${e.time||"—"}</td><td>${eventTypeLabel(e.type)}</td><td>${e.cls}</td><td>${e.subject}</td><td>${e.topic}</td><td>${e.desc||"—"}</td><td class="teacherOnly"><button class="danger" onclick="event.stopPropagation();deleteCalendarEvent(${i})">Usuń</button></td></tr>`;
+  });
   table.innerHTML=rows;
 }
+
 async function readMessageFiles(){
   const input=document.getElementById("msgAttachments"); if(!input||!input.files||!input.files.length)return [];
   const res=[]; for(const file of [...input.files]){if(file.size>900000){alert("Plik "+file.name+" jest za duży. Maksymalnie ok. 900 KB.");continue}
