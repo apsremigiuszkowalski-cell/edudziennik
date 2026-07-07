@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
+<!-- WERSJA 604: naprawione renderGrades + średnia -->
 <!-- WERSJA 603: poprawiony import, średnia i dane matematyki -->
 <!-- WERSJA FINAL SREDNIA 5.58: nb/puste/+/- nie liczone; 5+=5.33; 5-=4.67 -->
 <meta charset="UTF-8">
@@ -964,6 +965,7 @@ function gradeColorClass(grade, code){
   return "g-black";
 }
 function gradeBgClass(code, grade){ return ""; }
+
 
 function renderFinals(){
   let cls=currentCls();
