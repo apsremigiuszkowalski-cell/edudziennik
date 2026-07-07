@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-<!-- WERSJA 605: awaryjnie dodane renderGradesSafe -->
+<!-- WERSJA 606: średnia liczona bezpośrednio w tabeli -->
 <!-- WERSJA 603: poprawiony import, średnia i dane matematyki -->
 <!-- WERSJA FINAL SREDNIA 5.58: nb/puste/+/- nie liczone; 5+=5.33; 5-=4.67 -->
 <meta charset="UTF-8">
@@ -517,7 +517,8 @@ onAuthStateChanged(auth, async (user)=>{
 
   if(seedMathClass6IfNeeded()) await save();
   ensureParentAccess(); await save();
-  if(fixMathData603()) await save();
+  if(fixMathData606()) await save();
+  if(fixMathData606()) await save();
   currentUser=db.users.find(u=>u.email===user.email);
   if(!currentUser){
     alert("To konto nie jest wpisane w dzienniku.");
@@ -767,35 +768,7 @@ window.deleteColumn=async function(index){
 
 
 /* ===== POPRAWNE LICZENIE ŚREDNIEJ — WERSJA 603 ===== */
-function gradeNum(g){
-  if(g === undefined || g === null) return null;
-  g = String(g).trim().toLowerCase().replace(",", ".");
 
-  if(["", "nb", "np", "zw", "zwolniony", "+", "-"].includes(g)) return null;
-
-  const scale = {
-    "6": 6.00,
-    "-6": 5.67,
-    "5+": 5.33,
-    "+5": 5.33,
-    "5": 5.00,
-    "-5": 4.67,
-    "4+": 4.33,
-    "+4": 4.33,
-    "4": 4.00,
-    "-4": 3.67,
-    "3+": 3.33,
-    "+3": 3.33,
-    "3": 3.00,
-    "-3": 2.67,
-    "2+": 2.33,
-    "+2": 2.33,
-    "2": 2.00,
-    "1": 1.00
-  };
-
-  return Object.prototype.hasOwnProperty.call(scale, g) ? scale[g] : null;
-}
 
 function avg(st, sem){
   const subject = currentSubject();
@@ -821,47 +794,7 @@ function avg(st, sem){
   return weightSum ? (sum / weightSum).toFixed(2) : "—";
 }
 
-function avgDetails(st, sem){
-  const subject = currentSubject();
-  let rows = [];
-  let sum = 0;
-  let weightSum = 0;
 
-  (db.columns || [])
-    .filter(c => c.subject === subject && String(c.semester || "1") === String(sem))
-    .forEach(c => {
-      const key = "6F|" + subject + "|" + st + "|" + c.code;
-      const x = (db.grades || {})[key];
-
-      if(!x || !x.grade) return;
-
-      const grade = String(x.grade).trim();
-      const value = gradeNum(grade);
-      if(value === null) return;
-
-      const weight = Number(c.weight || 1);
-      const points = value * weight;
-
-      sum += points;
-      weightSum += weight;
-
-      rows.push({
-        code: c.code,
-        grade,
-        value,
-        weight,
-        points,
-        oldGrade: x.oldGrade || ""
-      });
-    });
-
-  return {
-    rows,
-    sum,
-    wsum: weightSum,
-    avg: weightSum ? (sum / weightSum) : null
-  };
-}
 
 /* ===== JEDNORAZOWA NAPRAWA DANYCH MATEMATYKI — WERSJA 603 ===== */
 function fixMathData603(){
@@ -965,6 +898,169 @@ function gradeColorClass(grade, code){
   return "g-black";
 }
 function gradeBgClass(code, grade){ return ""; }
+
+
+function avg606(st, sem){
+  const subject = currentSubject();
+  let sum = 0;
+  let weightSum = 0;
+
+  (db.columns || [])
+    .filter(c => c.subject === subject && String(c.semester || "1") === String(sem))
+    .forEach(c => {
+      const key = "6F|" + subject + "|" + st + "|" + c.code;
+      const x = (db.grades || {})[key];
+      if(!x || !x.grade) return;
+
+      const value = gradeValue606(x.grade);
+      if(value === null) return;
+
+      const weight = Number(c.weight || 1);
+      sum += value * weight;
+      weightSum += weight;
+    });
+
+  return weightSum ? (sum / weightSum).toFixed(2) : "—";
+}
+
+function fixMathData606(){
+  if(!db) return false;
+
+  db.columns = db.columns || [];
+  db.grades = db.grades || {};
+
+  const cols = [
+    ["A1",1,"#f3c13a"],["PL1",1,"#ffffff"],["A2",1,"#f3c13a"],["S1",3,"#ff3333"],
+    ["A3",1,"#f3c13a"],["K1",2,"#77aa55"],["A4",1,"#f3c13a"],["K2",2,"#d6bd48"],
+    ["S2",3,"#ff3333"],["PL2",2,"#a020f0"],["A5",1,"#2f74ff"],["ODP1",1,"#2f74ff"],
+    ["ODP2",1,"#2f74ff"],["A6",1,"#f3c13a"],["K3",2,"#77aa55"],["S3",3,"#ff3333"]
+  ];
+
+  db.columns = db.columns.filter(c => c.subject !== "Matematyka");
+  cols.forEach(([code, weight, color]) => {
+    db.columns.push({subject:"Matematyka", code, desc:code, weight:Number(weight), semester:"1", color});
+  });
+
+  Object.keys(db.grades).forEach(k => {
+    if(k.startsWith("6F|Matematyka|Kowalski Czesław|") || k.startsWith("6F|Matematyka|Kowalski Rafał Paweł|")){
+      delete db.grades[k];
+    }
+  });
+
+  const grades = {
+    "Kowalski Czesław":{
+      "A1":"6","PL1":"5","A2":"6","S1":"5-","A3":"6","K1":"5","A4":"6","K2":"6",
+      "S2":"5+","PL2":"6","A5":"6","ODP1":"6","ODP2":"6","A6":"6","K3":"6","S3":"5+"
+    },
+    "Kowalski Rafał Paweł":{
+      "A1":"6","PL1":"5+","A2":"6","S1":"5-","A3":"6","K1":"5+","A4":"+","K2":"6",
+      "S2":"nb","PL2":"","A5":"","ODP1":"6","ODP2":"","A6":"","K3":"nb","S3":"nb"
+    }
+  };
+
+  Object.keys(grades).forEach(st => {
+    Object.entries(grades[st]).forEach(([code, grade]) => {
+      if(grade !== ""){
+        db.grades["6F|Matematyka|" + st + "|" + code] = {grade, desc:code, date:"2026-07-26"};
+      }
+    });
+  });
+
+  db.mathDataVersion = "606";
+  return true;
+}
+
+function avgDetails606(st, sem){
+  const subject = currentSubject();
+  const rows = [];
+  let sum = 0;
+  let weightSum = 0;
+
+  (db.columns || [])
+    .filter(c => c.subject === subject && String(c.semester || "1") === String(sem))
+    .forEach(c => {
+      const key = "6F|" + subject + "|" + st + "|" + c.code;
+      const x = (db.grades || {})[key];
+      if(!x || !x.grade) return;
+
+      const grade = String(x.grade).trim();
+      const value = gradeValue606(grade);
+      if(value === null) return;
+
+      const weight = Number(c.weight || 1);
+      const points = value * weight;
+      sum += points;
+      weightSum += weight;
+      rows.push({code:c.code, grade, value, weight, points});
+    });
+
+  return {rows, sum, wsum:weightSum, avg:weightSum ? sum / weightSum : null};
+}
+
+window.showAvgDetails = function(st, sem){
+  const d = avgDetails606(st, sem);
+  let title = sem === 1 ? "średnia śródroczna" : "średnia z II półrocza";
+  let html = `<h4>${st} — ${title}</h4>`;
+
+  if(!d.rows.length){
+    html += "<p>Brak ocen do policzenia.</p>";
+  }else{
+    html += "<table><tr><th>Kod</th><th>Ocena</th><th>Wartość</th><th>Waga</th><th>Działanie</th></tr>";
+    d.rows.forEach(r => {
+      html += `<tr><td>${r.code}</td><td>${r.grade}</td><td>${r.value.toFixed(2)}</td><td>${r.weight}</td><td>${r.value.toFixed(2)} × ${r.weight} = ${r.points.toFixed(2)}</td></tr>`;
+    });
+    html += `</table><p><b>Suma punktów:</b> ${d.sum.toFixed(2)}</p><p><b>Suma wag:</b> ${d.wsum}</p><p><b>Średnia:</b> ${d.sum.toFixed(2)} ÷ ${d.wsum} = ${(d.avg || 0).toFixed(2)}</p>`;
+  }
+
+  document.getElementById("avgDetails").innerHTML = html;
+  document.getElementById("avgModal").style.display = "flex";
+};
+
+function renderGrades(){
+  fixMathData606();
+
+  const table = document.getElementById("gradesTable");
+  if(!table) return;
+
+  if(currentCls() !== "6F"){
+    table.outerHTML = "<table id='gradesTable'><tr><td>Oceny bieżące są tylko w folderze 6F.</td></tr></table>";
+    return;
+  }
+
+  const subject = currentSubject();
+  const cols = (db.columns || []).filter(c => c.subject === subject);
+  const studs = (roleNow === "student" || roleNow === "parent")
+    ? (db.students || []).filter(s => s.name === selectedStudent)
+    : (db.students || []);
+
+  let out = "<table id='gradesTable' class='gradeSheet'>";
+  out += "<tr class='weightRow'><th class='nr'></th><th class='studentName'></th>";
+  cols.forEach(c => out += `<th>${Number(c.weight || 1).toFixed(1)}</th>`);
+  out += "<th>Śr. I</th><th>Śródr.</th><th>Śr. II</th><th>Roczna</th></tr>";
+
+  out += "<tr class='codeRow'><th class='nr'>Nr</th><th>Uczeń</th>";
+  cols.forEach(c => out += `<th title="${c.desc || ""}">${c.code}</th>`);
+  out += "<th></th><th></th><th></th><th></th></tr>";
+
+  studs.forEach(s => {
+    out += `<tr><td class="nr">${s.no || ""}</td><td class="studentName">${s.name}</td>`;
+    cols.forEach(c => {
+      const key = "6F|" + subject + "|" + s.name + "|" + c.code;
+      const x = (db.grades || {})[key] || {};
+      const grade = x.grade || "";
+      const cc = gradeColorClass(grade, c.code);
+      out += `<td class="gradeCell" onclick="openGrade('${s.name}','${c.code}')"><span class="gradeText ${cc}">${grade}</span></td>`;
+    });
+
+    out += `<td><span class="avgLink" onclick="showAvgDetails('${s.name}',1)">${avg606(s.name,1)}</span></td>
+      <td>${finalCell("6F", subject, s.name, "srodroczna")}</td>
+      <td><span class="avgLink" onclick="showAvgDetails('${s.name}',2)">${avg606(s.name,2)}</span></td>
+      <td>${finalCell("6F", subject, s.name, "roczna")}</td></tr>`;
+  });
+
+  out += "</table>";
+  table.outerHTML = out;
+}
 
 function renderFinals(){
   let cls=currentCls();
@@ -1279,7 +1375,7 @@ window.deleteMessage=async function(i){
 function renderAll(){
   try{
     txt('currentClass',currentCls()); txt('currentLesson',currentSubject()); txt('currentStudentText',selectedStudent||"—");
-    renderTree();renderSelects();renderStudents();renderAccounts();renderColumns();window.renderGradesSafe();renderFinals();renderAttendance();renderLessons();renderNotes();try{renderMailbox();}catch(e){console.error(e);}renderCertSelects();
+    renderTree();renderSelects();renderStudents();renderAccounts();renderColumns();renderGrades();renderFinals();renderAttendance();renderLessons();renderNotes();try{renderMailbox();}catch(e){console.error(e);}renderCertSelects();
     document.querySelectorAll(".teacherOnly").forEach(e=>e.style.display=roleNow==="teacher"?"":"none");
     const clsSel=document.getElementById("classSelect"); if(clsSel) clsSel.style.display=roleNow==="teacher"?"":"none"; document.querySelectorAll(".parentNoAccess").forEach(e=>e.style.display=(roleNow==="parent"||roleNow==="student")?"none":"");
   }catch(err){
@@ -1288,61 +1384,6 @@ function renderAll(){
   }
 }
 initSubjects(); if(document.getElementById('lessonDate')) lessonDate.value=dateOnly();
-
-
-/* ===== AWARYJNA NAPRAWA renderGrades — WERSJA 605 ===== */
-window.renderGradesSafe = function(){
-  const table = document.getElementById("gradesTable");
-  if(!table) return;
-
-  if(currentCls() !== "6F"){
-    table.outerHTML = "<table id='gradesTable'><tr><td>Oceny bieżące są tylko w folderze 6F.</td></tr></table>";
-    return;
-  }
-
-  const subject = currentSubject();
-  const cols = (db.columns || []).filter(c => c.subject === subject);
-  const studs = (roleNow === "student" || roleNow === "parent")
-    ? (db.students || []).filter(s => s.name === selectedStudent)
-    : (db.students || []);
-
-  let out = "<table id='gradesTable' class='gradeSheet'>";
-  out += "<tr class='weightRow'><th class='nr'></th><th class='studentName'></th>";
-  cols.forEach(c => out += `<th>${Number(c.weight || 1).toFixed(1)}</th>`);
-  out += "<th>Śr. I</th><th>Śródr.</th><th>Śr. II</th><th>Roczna</th></tr>";
-
-  out += "<tr class='codeRow'><th class='nr'>Nr</th><th>Uczeń</th>";
-  cols.forEach(c => out += `<th title="${c.desc || ""}">${c.code}</th>`);
-  out += "<th></th><th></th><th></th><th></th></tr>";
-
-  studs.forEach(s => {
-    out += `<tr><td class="nr">${s.no || ""}</td><td class="studentName">${s.name}</td>`;
-
-    cols.forEach(c => {
-      const key = "6F|" + subject + "|" + s.name + "|" + c.code;
-      const x = (db.grades || {})[key] || {};
-      const grade = x.grade || "";
-      const cc = gradeColorClass(grade, c.code);
-
-      out += `<td class="gradeCell" onclick="openGrade('${s.name}','${c.code}')" title="${x.desc || c.desc || ""}\n${x.date || ""}">
-        <span class="gradeText ${cc}">${grade}</span>
-      </td>`;
-    });
-
-    out += `<td><span class="avgLink" onclick="showAvgDetails('${s.name}',1)">${avg(s.name,1)}</span></td>
-      <td>${finalCell("6F", subject, s.name, "srodroczna")}</td>
-      <td><span class="avgLink" onclick="showAvgDetails('${s.name}',2)">${avg(s.name,2)}</span></td>
-      <td>${finalCell("6F", subject, s.name, "roczna")}</td></tr>`;
-  });
-
-  out += "</table>";
-  table.outerHTML = out;
-};
-
-/* nazwa, której szuka stary kod */
-function renderGrades(){
-  return window.renderGradesSafe();
-}
 
 </script>
 </body>
