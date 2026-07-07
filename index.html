@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
+<!-- WERSJA 612: kalendarz, załączniki, pełny układ semestrów -->
 <!-- WERSJA 611: semestry, nagłówki średnich, K zielone -->
 <!-- WERSJA 610: poprawione oceny z minusem 5-, 4-, 3- -->
 <!-- WERSJA 607: dodana brakująca funkcja renderGrades, średnia 5.58 -->
@@ -103,6 +104,20 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
 .statusNo{color:#b00020;font-weight:bold}
 .realized{color:#0a5fb4;font-weight:bold}
 .planned{color:#9a6a00;font-weight:bold}
+
+.calendarGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;min-width:700px}
+.calHead{background:#e8eef5;font-weight:bold;text-align:center;padding:6px;border:1px solid #cbd3dc}
+.calDay{border:1px solid #cbd3dc;background:#fff;min-height:78px;padding:4px;text-align:left}
+.calDate{font-weight:bold;color:#18415f}
+.calEvent{font-size:11px;margin-top:3px;padding:2px 4px;border-radius:3px;background:#fff2a8;border-left:4px solid #d9a400;cursor:pointer}
+.calEvent.test{background:#ffe1e1;border-left-color:#d84c4c}
+.calEvent.quiz{background:#e2f1ff;border-left-color:#3485c8}
+.calEvent.homework{background:#e6ffe6;border-left-color:#3a9d45}
+.eventSoon{border-left:5px solid #d9a400;background:#fff8df;padding:7px;margin:5px 0}
+.attachmentList{font-size:11px;margin-top:6px;color:#18415f}
+.attachmentChip{display:inline-block;border:1px solid #b7c4d0;background:#eef3f8;padding:3px 6px;border-radius:12px;margin:2px}
+.semSwitch{margin-bottom:8px}
+.semSwitch button{margin-right:6px}
 </style>
 </head>
 <body>
@@ -130,6 +145,7 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
   <div class="tool" onclick="show('frekwencja')"><div class="ico blue"></div><div>Frekwencja</div></div>
   <div class="tool" onclick="show('uwagi')"><div class="ico red"></div><div>Uwagi</div></div>
   <div class="tool" onclick="show('poczta')"><div class="ico blue"></div><div>Poczta</div></div>
+  <div class="tool" onclick="show('kalendarz')"><div class="ico green"></div><div>Kalendarz</div></div>
   <div class="tool parentNoAccess" onclick="show('swiadectwo')"><div class="ico"></div><div>Świadectwo</div></div>
   <div class="tool teacherOnly" onclick="show('uczniowie')"><div class="ico blue"></div><div>Uczniowie</div></div>
   <div class="tool teacherOnly" onclick="show('konta')"><div class="ico green"></div><div>Konta</div></div>
@@ -150,7 +166,7 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
       <div class="card"><h2>Start</h2><div class="body">
         <p id="hello"></p><p><b>Folder klasy:</b> <span id="currentClass"></span></p>
         <p><b>Przedmiot:</b> <span id="currentLesson"></span></p><p><b>Wybrany uczeń:</b> <span id="currentStudentText"></span></p>
-        <p class="small">Dane zapisują się online w Firebase Firestore.</p>
+        <p class="small">Dane zapisują się online w Firebase Firestore.</p><h3>Najbliższe sprawdziany i kartkówki</h3><div id="upcomingEvents"></div>
       </div></div>
     </div>
 
@@ -227,6 +243,30 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
     </div>
 
   
+
+    <div id="kalendarz" class="page hidden">
+      <div class="card teacherOnly"><h2>Dodaj wydarzenie</h2><div class="body">
+        <div class="grid">
+          <select id="eventType"><option value="sprawdzian">Sprawdzian</option><option value="kartkowka">Kartkówka</option><option value="odpowiedz">Odpowiedź ustna</option><option value="praca_domowa">Praca domowa</option><option value="projekt">Projekt</option></select>
+          <input id="eventDate" type="date">
+          <input id="eventTime" type="time">
+          <input id="eventTopic" placeholder="Temat wydarzenia">
+        </div>
+        <div class="grid">
+          <select id="eventClass"><option>6F</option><option>5F</option><option>4F</option></select>
+          <select id="eventSubject"></select>
+          <input id="eventDesc" placeholder="Opis / uwagi">
+          <button class="primary" onclick="addCalendarEvent()">Dodaj wydarzenie</button>
+        </div>
+      </div></div>
+      <div class="card"><h2>Kalendarz sprawdzianów i kartkówek</h2><div class="body">
+        <div class="grid"><button onclick="changeCalendarMonth(-1)">◀ Poprzedni miesiąc</button><h3 id="calendarTitle"></h3><button onclick="changeCalendarMonth(1)">Następny miesiąc ▶</button></div>
+        <div id="calendarBox"></div>
+        <h3>Lista wydarzeń</h3>
+        <table id="eventsTable"></table>
+      </div></div>
+    </div>
+
     <div id="poczta" class="page hidden">
       <div class="card"><h2>Skrzynka pocztowa</h2><div class="body">
         <div class="grid">
@@ -251,6 +291,7 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
       <div class="menuItem" onclick="show('frekwencja')">Frekwencja</div>
       <div class="menuItem" onclick="show('uwagi')">Uwagi</div>
       <div class="menuItem" onclick="show('poczta')">Skrzynka pocztowa</div>
+      <div class="menuItem" onclick="show('kalendarz')">Kalendarz sprawdzianów</div>
       <div class="menuItem parentNoAccess" onclick="show('swiadectwo')">Drukuj świadectwo</div>
       <div class="menuItem teacherOnly" onclick="show('uczniowie')">Uczniowie</div>
       <div class="menuItem teacherOnly" onclick="show('konta')">Konta</div>
@@ -364,12 +405,15 @@ const defaultData={
     {no:"1",name:"Kowalski Czesław",email:"czeskowa34@edudziennik.local",password:"",parentEmail:"rodzic.czeslaw@example.com"},
     {no:"2",name:"Kowalski Rafał Paweł",email:"rafkowa12@edudziennik.local",password:"",parentEmail:"rekin123@interia.pl"}
   ],
-  columns:[],grades:{},finals:{},attendance:[],lessons:[],notes:[],parentMessages:[]
+  columns:[],grades:{},finals:{},attendance:[],lessons:[],notes:[],parentMessages:[],events:[],messages:[]
 };
 
 let db=structuredClone(defaultData);
 let currentUser=null, roleNow="teacher", selectedStudent="Kowalski Czesław", editStudent="", editCode="", unsub=null;
 let activeGradeSemester="1";
+let calendarMonth=new Date();
+let activeGradeSemester="1";
+let calendarMonth=new Date();
 
 const $ = (id) => document.getElementById(id);
 function showEl(id, display="block"){ const el=$(id); if(el) el.style.display=display; }
@@ -381,7 +425,12 @@ function setVal(id, value){ const el=$(id); if(el) el.value=value; }
 function exists(id){ return !!$(id); }
 
 
-function initSubjects(){htmlSet('lessonSelect',subjects.map(s=>`<option>${s}</option>`).join("")); setVal('lessonSelect',"Matematyka")}
+function initSubjects(){
+  htmlSet('lessonSelect',subjects.map(s=>`<option>${s}</option>`).join(""));
+  setVal('lessonSelect',"Matematyka");
+  if(document.getElementById('eventSubject')) htmlSet('eventSubject',subjects.map(s=>`<option>${s}</option>`).join(""));
+  if(document.getElementById('eventDate')) eventDate.value=new Date().toISOString().slice(0,10);
+}</option>`).join("")); setVal('lessonSelect',"Matematyka")}
 function now(){let d=new Date();return d.toLocaleDateString("pl-PL")+" "+d.toLocaleTimeString("pl-PL",{hour:"2-digit",minute:"2-digit"})}
 function currentSubject(){return val('lessonSelect')}
 function currentCls(){return val('classSelect')}
@@ -519,6 +568,7 @@ onAuthStateChanged(auth, async (user)=>{
     if(!db.notes) db.notes = [];
     if(!db.parentMessages) db.parentMessages = [];
     if(!db.messages) db.messages = [];
+    if(!db.events) db.events = [];
     if(!db.exams) db.exams = [];
     if(!db.homework) db.homework = [];
     await setDoc(dataRef, db, {merge:false});
@@ -849,6 +899,20 @@ function avg(st, sem){
   return weightSum ? (sum / weightSum).toFixed(2) : "—";
 }
 
+function avgYear(st){
+  const subject=currentSubject();
+  let sum=0, weightSum=0;
+  (db.columns||[]).filter(c=>c.subject===subject).forEach(c=>{
+    const x=(db.grades||{})["6F|"+subject+"|"+st+"|"+c.code];
+    if(!x||!x.grade)return;
+    const value=gradeNum(x.grade);
+    if(value===null)return;
+    const weight=Number(c.weight||1);
+    sum+=value*weight; weightSum+=weight;
+  });
+  return weightSum?(sum/weightSum).toFixed(2):"—";
+}
+
 function avgDetails(st, sem){
   const subject = currentSubject();
   let rows = [];
@@ -986,10 +1050,7 @@ window.showAvgDetails=function(st,sem){
 
 function gradeColorClass(grade, code){
   grade=String(grade||"").trim();
-
-  // K1, K2, K3 mają być zawsze zielone, także "nb"
   if(["K1","K2","K3"].includes(code)) return "g-green";
-
   if(["S1","S2","S3"].includes(code) || grade==="5-" || grade==="5+" && code==="S2" || grade==="nb") return "g-red";
   if(["A5","ODP1","ODP2"].includes(code) || (grade==="6" && ["A5","ODP1","ODP2"].includes(code))) return "g-blue";
   if(code==="PL2") return "g-purple";
@@ -999,65 +1060,38 @@ function gradeBgClass(code, grade){ return ""; }
 
 
 function renderGrades(){
-  const table = document.getElementById("gradesTable");
-  if(!table) return;
-
-  const b1=document.getElementById("semBtn1");
-  const b2=document.getElementById("semBtn2");
-  if(b1&&b2){
-    b1.className=activeGradeSemester==="1"?"primary":"";
-    b2.className=activeGradeSemester==="2"?"primary":"";
-  }
-
-  if(currentCls() !== "6F"){
-    table.outerHTML = "<table id='gradesTable'><tr><td>Oceny bieżące są tylko w folderze 6F.</td></tr></table>";
-    return;
-  }
-
-  const subject = currentSubject();
-  const sem = String(activeGradeSemester || "1");
-
-  const cols = (db.columns || []).filter(c => c.subject === subject && String(c.semester || "1") === sem);
-  const studs = (roleNow === "student" || roleNow === "parent")
-    ? (db.students || []).filter(s => s.name === selectedStudent)
-    : (db.students || []);
-
-  let out = "<table id='gradesTable' class='gradeSheet'>";
-  out += "<tr class='weightRow'><th class='nr'></th><th class='studentName'></th>";
-  cols.forEach(c => out += `<th>${Number(c.weight || 1).toFixed(1)}</th>`);
-
-  if(sem === "1"){
-    out += "<th>Średnia z okresu</th><th>Śródr.</th></tr>";
-  }else{
-    out += "<th>Średnia roczna</th><th>Roczna</th></tr>";
-  }
-
-  out += "<tr class='codeRow'><th class='nr'>Nr</th><th>Uczeń</th>";
-  cols.forEach(c => out += `<th title="${c.desc || ''}">${c.code}</th>`);
-  out += "<th></th><th></th></tr>";
-
-  studs.forEach(s => {
-    out += `<tr><td class="nr">${s.no || ''}</td><td class="studentName">${s.name}</td>`;
-
-    cols.forEach(c => {
-      const key = "6F|" + subject + "|" + s.name + "|" + c.code;
-      const x = (db.grades || {})[key] || {};
-      const grade = x.grade || "";
-      const cc = gradeColorClass(grade, c.code);
-      out += `<td class="gradeCell" onclick="openGrade('${s.name}','${c.code}')" title="${x.desc || c.desc || ''}\n${x.date || ''}"><span class="gradeText ${cc}">${grade}</span></td>`;
+  const table=document.getElementById("gradesTable");
+  if(!table)return;
+  const b1=document.getElementById("semBtn1"), b2=document.getElementById("semBtn2");
+  if(b1&&b2){b1.className=activeGradeSemester==="1"?"primary":""; b2.className=activeGradeSemester==="2"?"primary":"";}
+  if(currentCls()!=="6F"){table.outerHTML="<table id='gradesTable'><tr><td>Oceny bieżące są tylko w folderze 6F.</td></tr></table>";return;}
+  const subject=currentSubject(), sem=String(activeGradeSemester||"1");
+  const cols=(db.columns||[]).filter(c=>c.subject===subject&&String(c.semester||"1")===sem);
+  const studs=(roleNow==="student"||roleNow==="parent")?(db.students||[]).filter(s=>s.name===selectedStudent):(db.students||[]);
+  let out="<table id='gradesTable' class='gradeSheet'>";
+  out+="<tr class='weightRow'><th class='nr'></th><th class='studentName'></th>";
+  cols.forEach(c=>out+=`<th>${Number(c.weight||1).toFixed(1)}</th>`);
+  out+=sem==="1"?"<th>Średnia z okresu</th><th>Proponowane</th><th>Wystawienie</th></tr>":"<th>Średnia z okresu</th><th>Średnia roczna</th><th>Proponowane</th><th>Wystawienie</th></tr>";
+  out+="<tr class='codeRow'><th class='nr'>Nr</th><th>Uczeń</th>";
+  cols.forEach(c=>out+=`<th title="${c.desc||''}">${c.code}</th>`);
+  out+=sem==="1"?"<th></th><th></th><th></th></tr>":"<th></th><th></th><th></th><th></th></tr>";
+  studs.forEach(s=>{
+    out+=`<tr><td class="nr">${s.no||''}</td><td class="studentName">${s.name}</td>`;
+    cols.forEach(c=>{
+      const key="6F|"+subject+"|"+s.name+"|"+c.code;
+      const x=(db.grades||{})[key]||{}, grade=x.grade||"", cc=gradeColorClass(grade,c.code);
+      out+=`<td class="gradeCell" onclick="openGrade('${s.name}','${c.code}')" title="${x.desc||c.desc||''}\n${x.date||''}"><span class="gradeText ${cc}">${grade}</span></td>`;
     });
-
-    if(sem === "1"){
-      out += `<td><span class="avgLink" onclick="showAvgDetails('${s.name}',1)">${avg(s.name,1)}</span></td>`;
-      out += `<td>${finalCell("6F", subject, s.name, "srodroczna")}</td></tr>`;
+    if(sem==="1"){
+      out+=`<td><span class="avgLink" onclick="showAvgDetails('${s.name}',1)">${avg(s.name,1)}</span></td>`;
+      out+=`<td>${finalCell("6F",subject,s.name,"prop_srodroczna")}</td><td>${finalCell("6F",subject,s.name,"srodroczna")}</td></tr>`;
     }else{
-      out += `<td><span class="avgLink" onclick="showAvgDetails('${s.name}',2)">${avg(s.name,2)}</span></td>`;
-      out += `<td>${finalCell("6F", subject, s.name, "roczna")}</td></tr>`;
+      out+=`<td><span class="avgLink" onclick="showAvgDetails('${s.name}',2)">${avg(s.name,2)}</span></td>`;
+      out+=`<td>${avgYear(s.name)}</td><td>${finalCell("6F",subject,s.name,"prop_roczna")}</td><td>${finalCell("6F",subject,s.name,"roczna")}</td></tr>`;
     }
   });
-
-  out += "</table>";
-  table.outerHTML = out;
+  out+="</table>";
+  table.outerHTML=out;
 }
 
 function renderFinals(){
@@ -1373,7 +1407,7 @@ window.deleteMessage=async function(i){
 function renderAll(){
   try{
     txt('currentClass',currentCls()); txt('currentLesson',currentSubject()); txt('currentStudentText',selectedStudent||"—");
-    renderTree();renderSelects();renderStudents();renderAccounts();renderColumns();renderGrades();renderFinals();renderAttendance();renderLessons();renderNotes();try{renderMailbox();}catch(e){console.error(e);}renderCertSelects();
+    renderTree();renderSelects();renderStudents();renderAccounts();renderColumns();renderGrades();renderFinals();renderAttendance();renderLessons();renderNotes();try{renderMailbox();}catch(e){console.error(e);}renderCertSelects();try{renderCalendar();renderUpcomingEvents();}catch(e){}
     document.querySelectorAll(".teacherOnly").forEach(e=>e.style.display=roleNow==="teacher"?"":"none");
     const clsSel=document.getElementById("classSelect"); if(clsSel) clsSel.style.display=roleNow==="teacher"?"":"none"; document.querySelectorAll(".parentNoAccess").forEach(e=>e.style.display=(roleNow==="parent"||roleNow==="student")?"none":"");
   }catch(err){
@@ -1382,6 +1416,54 @@ function renderAll(){
   }
 }
 initSubjects(); if(document.getElementById('lessonDate')) lessonDate.value=dateOnly();
+
+
+/* ===== KALENDARZ I ZAŁĄCZNIKI — WERSJA 612 ===== */
+function eventTypeLabel(t){return {sprawdzian:"Sprawdzian",kartkowka:"Kartkówka",odpowiedz:"Odpowiedź ustna",praca_domowa:"Praca domowa",projekt:"Projekt"}[t]||t}
+function eventClassName(t){if(t==="sprawdzian")return"test";if(t==="kartkowka")return"quiz";if(t==="praca_domowa")return"homework";return""}
+window.addCalendarEvent=async function(){
+  if(roleNow!=="teacher")return;
+  if(!eventDate.value||!eventTopic.value.trim())return alert("Wpisz datę i temat.");
+  db.events=db.events||[];
+  db.events.push({type:eventType.value,cls:eventClass.value,subject:eventSubject.value,date:eventDate.value,time:eventTime.value,topic:eventTopic.value.trim(),desc:eventDesc.value.trim(),created:now()});
+  eventTopic.value=eventDesc.value=eventTime.value="";
+  await save();renderAll();
+}
+window.deleteCalendarEvent=async function(i){if(roleNow!=="teacher")return;if(!confirm("Usunąć wydarzenie?"))return;db.events.splice(i,1);await save();renderAll();}
+window.changeCalendarMonth=function(delta){calendarMonth.setMonth(calendarMonth.getMonth()+delta);renderCalendar();}
+function renderUpcomingEvents(){
+  const box=document.getElementById("upcomingEvents"); if(!box)return;
+  const today=new Date(); today.setHours(0,0,0,0); const end=new Date(today); end.setDate(end.getDate()+7);
+  const events=(db.events||[]).filter(e=>{const d=new Date(e.date+"T00:00:00");return d>=today&&d<=end&&(roleNow==="teacher"||e.cls===currentCls())}).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+  box.innerHTML=events.length?events.map(e=>`<div class="eventSoon"><b>${eventTypeLabel(e.type)}</b> — ${e.date} ${e.time||""}<br>${e.cls}, ${e.subject}: ${e.topic}</div>`).join(""):"<p class='small'>Brak wydarzeń w najbliższych 7 dniach.</p>";
+}
+function renderCalendar(){
+  const box=document.getElementById("calendarBox"), title=document.getElementById("calendarTitle"), table=document.getElementById("eventsTable");
+  if(!box||!title||!table)return;
+  const y=calendarMonth.getFullYear(), m=calendarMonth.getMonth(), first=new Date(y,m,1), last=new Date(y,m+1,0), start=(first.getDay()+6)%7;
+  title.innerText=calendarMonth.toLocaleDateString("pl-PL",{month:"long",year:"numeric"});
+  let out="<div class='calendarGrid'>";["Pn","Wt","Śr","Cz","Pt","Sb","Nd"].forEach(d=>out+=`<div class="calHead">${d}</div>`);
+  for(let i=0;i<start;i++)out+="<div class='calDay'></div>";
+  for(let day=1;day<=last.getDate();day++){
+    const dateStr=`${y}-${String(m+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+    const ev=(db.events||[]).filter(e=>e.date===dateStr&&(roleNow==="teacher"||e.cls===currentCls()));
+    out+=`<div class="calDay"><div class="calDate">${day}</div>`;
+    ev.forEach(e=>out+=`<div class="calEvent ${eventClassName(e.type)}" title="${e.desc||""}">${eventTypeLabel(e.type)}<br>${e.subject}: ${e.topic}</div>`);
+    out+="</div>";
+  }
+  out+="</div>"; box.innerHTML=out;
+  let rows="<tr><th>Data</th><th>Godz.</th><th>Typ</th><th>Klasa</th><th>Przedmiot</th><th>Temat</th><th>Opis</th><th class='teacherOnly'>Akcja</th></tr>";
+  (db.events||[]).filter(e=>roleNow==="teacher"||e.cls===currentCls()).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time)).forEach(e=>{const i=db.events.indexOf(e);rows+=`<tr><td>${e.date}</td><td>${e.time||"—"}</td><td>${eventTypeLabel(e.type)}</td><td>${e.cls}</td><td>${e.subject}</td><td>${e.topic}</td><td>${e.desc||"—"}</td><td class="teacherOnly"><button class="danger" onclick="deleteCalendarEvent(${i})">Usuń</button></td></tr>`});
+  table.innerHTML=rows;
+}
+async function readMessageFiles(){
+  const input=document.getElementById("msgAttachments"); if(!input||!input.files||!input.files.length)return [];
+  const res=[]; for(const file of [...input.files]){if(file.size>900000){alert("Plik "+file.name+" jest za duży. Maksymalnie ok. 900 KB.");continue}
+    const data=await new Promise((ok,err)=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=err;r.readAsDataURL(file)});
+    res.push({name:file.name,type:file.type,size:file.size,data});
+  } return res;
+}
+function attachmentHtml(atts){return atts&&atts.length?`<div class="attachmentList">📎 ${atts.length} załącznik(i): `+atts.map(a=>`<a class="attachmentChip" href="${a.data}" download="${a.name}">${a.name}</a>`).join(" ")+"</div>":""}
 
 </script>
 </body>
