@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
+<!-- WERSJA 615: zwijane klasy i praca klasowa w kalendarzu -->
 <!-- WERSJA 614: naprawione logowanie i initSubjects -->
 <!-- WERSJA 613: naprawione logowanie po błędzie duplikatu zmiennych -->
 <!-- WERSJA 612: kalendarz, załączniki, pełny układ semestrów -->
@@ -249,7 +250,7 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
     <div id="kalendarz" class="page hidden">
       <div class="card teacherOnly"><h2>Dodaj wydarzenie</h2><div class="body">
         <div class="grid">
-          <select id="eventType"><option value="sprawdzian">Sprawdzian</option><option value="kartkowka">Kartkówka</option><option value="odpowiedz">Odpowiedź ustna</option><option value="praca_domowa">Praca domowa</option><option value="projekt">Projekt</option></select>
+          <select id="eventType"><option value="sprawdzian">Sprawdzian</option><option value="praca_klasowa">Praca klasowa</option><option value="kartkowka">Kartkówka</option><option value="odpowiedz">Odpowiedź ustna</option><option value="praca_domowa">Praca domowa</option><option value="projekt">Projekt</option></select>
           <input id="eventDate" type="date">
           <input id="eventTime" type="time">
           <input id="eventTopic" placeholder="Temat wydarzenia">
@@ -414,6 +415,7 @@ let db=structuredClone(defaultData);
 let currentUser=null, roleNow="teacher", selectedStudent="Kowalski Czesław", editStudent="", editCode="", unsub=null;
 let activeGradeSemester="1";
 let calendarMonth=new Date();
+let collapsedClasses={};
 
 const $ = (id) => document.getElementById(id);
 function showEl(id, display="block"){ const el=$(id); if(el) el.style.display=display; }
@@ -619,11 +621,18 @@ function renderTree(){
     html+=`<div class="treeItem student" onclick="chooseStudent('${selectedStudent}')">${selectedStudent}</div>`;
   }else{
     db.classes.forEach(c=>{
-      html+=`<div class="treeItem class" onclick="chooseClass('${c}')">Folder klasa ${c}</div>`;
-      db.students.forEach(s=>html+=`<div class="treeItem student" onclick="classSelect.value='${c}';chooseStudent('${s.name}')">${s.no}. ${s.name}</div>`);
+      const collapsed=!!collapsedClasses[c];
+      html+=`<div class="treeItem class" onclick="toggleClassFolder('${c}')">${collapsed?'▶':'▼'} ${c}</div>`;
+      if(!collapsed){
+        db.students.forEach(s=>html+=`<div class="treeItem student" style="padding-left:22px" onclick="classSelect.value='${c}';chooseStudent('${s.name}')">${s.no}. ${s.name}</div>`);
+      }
     });
   }
   tree.innerHTML=html;
+}
+window.toggleClassFolder=function(c){
+  collapsedClasses[c]=!collapsedClasses[c];
+  renderTree();
 }
 function renderSelects(){[attStudent,noteStudent].forEach(sel=>sel.innerHTML=db.students.map(s=>`<option>${s.name}</option>`).join(""))}
 
@@ -1423,8 +1432,8 @@ initSubjects(); if(document.getElementById('lessonDate')) lessonDate.value=dateO
 
 
 /* ===== KALENDARZ I ZAŁĄCZNIKI — WERSJA 612 ===== */
-function eventTypeLabel(t){return {sprawdzian:"Sprawdzian",kartkowka:"Kartkówka",odpowiedz:"Odpowiedź ustna",praca_domowa:"Praca domowa",projekt:"Projekt"}[t]||t}
-function eventClassName(t){if(t==="sprawdzian")return"test";if(t==="kartkowka")return"quiz";if(t==="praca_domowa")return"homework";return""}
+function eventTypeLabel(t){return {sprawdzian:"Sprawdzian",praca_klasowa:"Praca klasowa",kartkowka:"Kartkówka",odpowiedz:"Odpowiedź ustna",praca_domowa:"Praca domowa",projekt:"Projekt"}[t]||t}
+function eventClassName(t){if(t==="sprawdzian"||t==="praca_klasowa")return"test";if(t==="kartkowka")return"quiz";if(t==="praca_domowa")return"homework";return""}
 window.addCalendarEvent=async function(){
   if(roleNow!=="teacher")return;
   if(!eventDate.value||!eventTopic.value.trim())return alert("Wpisz datę i temat.");
