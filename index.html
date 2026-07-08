@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
+<!-- WERSJA 636: najbliższe lekcje w następnych 7 dniach -->
 <!-- WERSJA 635: odwołanie tylko wybranego tygodnia i bez tekstu cyklu -->
 <!-- WERSJA 634: naprawione tygodnie planu bez przeskoku na niedzielę -->
 <!-- WERSJA 633: zmiana tygodni w planie i lekcje odwołane -->
@@ -189,6 +190,9 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
   margin-left:4px;
   text-decoration:none!important;
 }
+
+.lessonSoon{border-left:5px solid #3485c8;background:#eef7ff;padding:7px;margin:5px 0}
+.lessonSoon.cancelled{border-left-color:#999;background:#f2f2f2;opacity:.8}
 </style>
 </head>
 <body>
@@ -238,7 +242,7 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
       <div class="card"><h2>Start</h2><div class="body">
         <p id="hello"></p><p><b>Folder klasy:</b> <span id="currentClass"></span></p>
         <p><b>Przedmiot:</b> <span id="currentLesson"></span></p><p><b>Wybrany uczeń:</b> <span id="currentStudentText"></span></p>
-        <p class="small">Dane zapisują się online w Firebase Firestore.</p><h3>Najbliższe sprawdziany i kartkówki</h3><div id="upcomingEvents"></div>
+        <p class="small">Dane zapisują się online w Firebase Firestore.</p><h3>Najbliższe lekcje w następnych 7 dniach</h3><div id="upcomingLessons"></div><h3>Najbliższe sprawdziany i kartkówki</h3><div id="upcomingEvents"></div>
       </div></div>
     </div>
 
@@ -1621,7 +1625,7 @@ window.deleteMessage=async function(i){
 function renderAll(){
   try{
     txt('currentClass',currentCls()); txt('currentLesson',currentSubject()); txt('currentStudentText',selectedStudent||"—");
-    renderTree();renderSelects();renderStudents();renderAccounts();renderColumns();renderGrades();renderFinals();renderAttendance();renderLessons();renderNotes();try{renderMailbox();}catch(e){console.error(e);}renderCertSelects();try{renderCalendar();renderUpcomingEvents();renderPlan();}catch(e){}
+    renderTree();renderSelects();renderStudents();renderAccounts();renderColumns();renderGrades();renderFinals();renderAttendance();renderLessons();renderNotes();try{renderMailbox();}catch(e){console.error(e);}renderCertSelects();try{renderCalendar();renderUpcomingEvents();renderUpcomingLessons();renderUpcomingLessons();renderPlan();}catch(e){}
     document.querySelectorAll(".teacherOnly").forEach(e=>e.style.display=roleNow==="teacher"?"":"none");
     const clsSel=document.getElementById("classSelect"); if(clsSel) clsSel.style.display=roleNow==="teacher"?"":"none"; document.querySelectorAll(".parentNoAccess").forEach(e=>e.style.display=(roleNow==="parent"||roleNow==="student")?"none":"");
   }catch(err){
@@ -1732,6 +1736,52 @@ window.dropEventOnDate=async function(ev,dateStr){
   db.events[i].date=dateStr;
   await save();
   renderAll();
+}
+
+
+function renderUpcomingLessons(){
+  const box=document.getElementById("upcomingLessons");
+  if(!box)return;
+
+  const cls=currentCls ? currentCls() : "6F";
+  const today=new Date();
+  today.setHours(0,0,0,0);
+  const end=new Date(today);
+  end.setDate(end.getDate()+7);
+
+  const rows=[];
+  for(let d=new Date(today); d<=end; d.setDate(d.getDate()+1)){
+    const week=weekKeyFromDate(dateToInputValue(d));
+    const dayNumber=((d.getDay()+6)%7)+1;
+
+    (db.plans||[])
+      .filter(p=>p.cls===cls && Number(p.day)===dayNumber && planApplies(p,week))
+      .forEach(p=>{
+        rows.push({
+          date:new Date(d),
+          week,
+          period:Number(p.period||1),
+          item:p,
+          cancelled:isPlanCancelled(p,week)
+        });
+      });
+  }
+
+  rows.sort((a,b)=>a.date-b.date || a.period-b.period);
+
+  if(!rows.length){
+    box.innerHTML="<p class='small'>Brak zaplanowanych lekcji w następnych 7 dniach.</p>";
+    return;
+  }
+
+  box.innerHTML=rows.map(r=>{
+    const d=r.date.toLocaleDateString("pl-PL",{weekday:"long",day:"2-digit",month:"2-digit",year:"numeric"});
+    const time=(typeof lessonTimes!=="undefined" && lessonTimes[r.period]) ? lessonTimes[r.period] : "";
+    return `<div class="lessonSoon ${r.cancelled?'cancelled':''}">
+      <b>${d}</b> — lekcja ${r.period} ${time?`(${time})`:""} ${r.cancelled?'<span class="cancelBadge">ODWOŁANA</span>':''}<br>
+      ${r.item.subject||"(bez nazwy)"}${r.item.room?` — sala ${r.item.room}`:""}${r.item.teacher?` — ${r.item.teacher}`:""}
+    </div>`;
+  }).join("");
 }
 
 function renderUpcomingEvents(){
