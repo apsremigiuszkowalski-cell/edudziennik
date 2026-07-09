@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pl">
-<head>\n<!-- WERSJA 637: informacje o edycji oceny i edycja daty -->
+<head>
+<!-- WERSJA 638: kolory ocen z kodów kolumn działają -->\n<!-- WERSJA 637: informacje o edycji oceny i edycja daty -->
 <!-- WERSJA 636: najbliższe lekcje w następnych 7 dniach -->
 <!-- WERSJA 635: odwołanie tylko wybranego tygodnia i bez tekstu cyklu -->
 <!-- WERSJA 634: naprawione tygodnie planu bez przeskoku na niedzielę -->
@@ -1224,12 +1225,20 @@ window.showAvgDetails=function(st,sem){
 }
 
 function gradeColorClass(grade, code){
-  grade=String(grade||"").trim();
-  if(["K1","K2","K3"].includes(code)) return "g-green";
-  if(["S1","S2","S3"].includes(code) || grade==="5-" || grade==="5+" && code==="S2" || grade==="nb") return "g-red";
-  if(["A5","ODP1","ODP2"].includes(code) || (grade==="6" && ["A5","ODP1","ODP2"].includes(code))) return "g-blue";
-  if(code==="PL2") return "g-purple";
+  // Kolor oceny jest teraz brany z ustawień kodu kolumny.
+  // Ta funkcja zostaje tylko awaryjnie.
   return "g-black";
+}
+
+function gradeInlineColor(code){
+  const subject = currentSubject();
+  const sem = String(activeGradeSemester || "1");
+  const col = (db.columns || []).find(c =>
+    c.subject === subject &&
+    c.code === code &&
+    String(c.semester || "1") === sem
+  );
+  return (col && col.color) ? col.color : "#000";
 }
 function gradeBgClass(code, grade){ return ""; }
 
@@ -1258,7 +1267,7 @@ function renderGrades(){
       const oldMark="";
       const dateMark="";
       const improvedClass=x.oldGrade ? " improvedGrade" : "";
-      out+=`<td class="gradeCell${improvedClass}" onclick="openGrade('${s.name}','${c.code}')" title="${x.desc||c.desc||''} ${x.date?'Wstawiono: '+x.date:''} ${x.editedDate?' | Edytowano: '+x.editedDate:''}"><span class="gradeText ${cc}">${grade}</span>${oldMark}${dateMark}</td>`;
+      out+=`<td class="gradeCell${improvedClass}" onclick="openGrade('${s.name}','${c.code}')" title="${x.desc||c.desc||''} ${x.date?'Wstawiono: '+x.date:''} ${x.editedDate?' | Edytowano: '+x.editedDate:''}"><span class="gradeText ${cc}" style="color:${gradeInlineColor(c.code)}">${grade}</span>${oldMark}${dateMark}</td>`;
     });
     if(sem==="1"){
       out+=`<td><span class="avgLink" onclick="showAvgDetails('${s.name}',1)">${avg(s.name,1)}</span></td>`;
