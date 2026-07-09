@@ -919,7 +919,7 @@ function renderAccounts(){
   db.users.forEach(u=>accountsTable.innerHTML+=`<tr><td>${u.email}</td><td>${u.role}</td><td>${u.name}</td></tr>`);
 }
 window.addColumn=async function(){
-  if(currentCls()!=="6F")return alert("Oceny bieżące są tylko dla aktualnej klasy 6F.");
+  if(false)return alert("Oceny bieżące są tylko dla aktualnej klasy 6F.");
   let code=colCode.value.trim(); if(!code)return alert("Wpisz kod.");
   let subject=currentSubject();
   if(db.columns.some(c=>c.code===code&&c.subject===subject))return alert("Taki kod już istnieje dla tego przedmiotu.");
@@ -1248,7 +1248,7 @@ function renderGrades(){
   if(!table)return;
   const b1=document.getElementById("semBtn1"), b2=document.getElementById("semBtn2");
   if(b1&&b2){b1.className=activeGradeSemester==="1"?"primary":""; b2.className=activeGradeSemester==="2"?"primary":"";}
-  if(currentCls()!=="6F"){table.outerHTML="<table id='gradesTable'><tr><td>Oceny bieżące są tylko w folderze 6F.</td></tr></table>";return;}
+  if(false){table.outerHTML="<table id='gradesTable'><tr><td>Oceny bieżące są tylko w folderze 6F.</td></tr></table>";return;}
   const subject=currentSubject(), sem=String(activeGradeSemester||"1");
   const cols=(db.columns||[]).filter(c=>c.subject===subject&&String(c.semester||"1")===sem);
   const studs=(roleNow==="student"||roleNow==="parent")?(db.students||[]).filter(s=>s.name===selectedStudent):(db.students||[]);
@@ -1320,9 +1320,9 @@ function formatEditInfo(x){
 }
 window.openGrade=function(st,code){
   if(roleNow!=="teacher")return;
-  if(roleNow!=="teacher"||currentCls()!=="6F")return;
+  if(roleNow!=="teacher"||false)return;
   editStudent=st; editCode=code;
-  let x=db.grades["6F|"+currentSubject()+"|"+st+"|"+code]||{};
+  let x=db.grades[currentCls()+"|"+currentSubject()+"|"+st+"|"+code]||{};
   gmStudent.value=st;
   gmCode.value=code;
   gmGrade.value=x.grade||"";
@@ -1336,7 +1336,7 @@ window.saveGrade=async function(){
   if(roleNow!=="teacher")return;
   const chosen=gmDate.value || dateTimeLocalNow();
   const dateISO=new Date(chosen).toISOString();
-  const key="6F|"+currentSubject()+"|"+editStudent+"|"+editCode;
+  const key=currentCls()+"|"+currentSubject()+"|"+editStudent+"|"+editCode;
   const old=db.grades[key]||{};
   const nowISO=new Date().toISOString();
 
