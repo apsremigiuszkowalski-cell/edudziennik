@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="pl">
-<head>
+<head>\n<!-- WERSJA 637: informacje o edycji oceny i edycja daty -->
 <!-- WERSJA 636: najbliższe lekcje w następnych 7 dniach -->
 <!-- WERSJA 635: odwołanie tylko wybranego tygodnia i bez tekstu cyklu -->
 <!-- WERSJA 634: naprawione tygodnie planu bez przeskoku na niedzielę -->
@@ -406,7 +406,7 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
   <div class="modal"><h3>Wstaw ocenę bieżącą</h3><div class="modalBody">
     <label>Uczeń</label><input id="gmStudent" readonly><label>Kod</label><input id="gmCode" readonly>
     <label>Ocena — wpisz sam</label><input id="gmGrade" placeholder="np. 6, -6, 5+, -5, 4+, -4, 3+, -3, 2+, nb"><label>Poprawiana ocena / stara ocena</label><input id="gmOldGrade" placeholder="np. 2, jeśli ocena została poprawiona">
-    <label>Data i godzina wystawienia</label><input id="gmDate" type="datetime-local"><label>Opis</label><input id="gmDesc">
+    <label>Data i godzina wystawienia</label><input id="gmDate" type="datetime-local"><div id="gmEditInfo" class="status" style="font-size:12px"></div><label>Opis</label><input id="gmDesc">
     <button class="primary" onclick="saveGrade()">Zapisz</button><button onclick="gradeModal.style.display='none'">Anuluj</button>
   </div></div>
 </div>
@@ -1258,7 +1258,7 @@ function renderGrades(){
       const oldMark="";
       const dateMark="";
       const improvedClass=x.oldGrade ? " improvedGrade" : "";
-      out+=`<td class="gradeCell${improvedClass}" onclick="openGrade('${s.name}','${c.code}')" title="${x.desc||c.desc||''} ${x.date||''} ${x.oldGrade?'Poprawiona z: '+x.oldGrade:''}"><span class="gradeText ${cc}">${grade}</span>${oldMark}${dateMark}</td>`;
+      out+=`<td class="gradeCell${improvedClass}" onclick="openGrade('${s.name}','${c.code}')" title="${x.desc||c.desc||''} ${x.date?'Wstawiono: '+x.date:''} ${x.editedDate?' | Edytowano: '+x.editedDate:''}"><span class="gradeText ${cc}">${grade}</span>${oldMark}${dateMark}</td>`;
     });
     if(sem==="1"){
       out+=`<td><span class="avgLink" onclick="showAvgDetails('${s.name}',1)">${avg(s.name,1)}</span></td>`;
@@ -1302,6 +1302,13 @@ function formatGradeDate(s){
   return d.toLocaleDateString("pl-PL")+" "+d.toLocaleTimeString("pl-PL",{hour:"2-digit",minute:"2-digit"});
 }
 
+
+function formatEditInfo(x){
+  if(!x || !x.grade) return "Brak wcześniejszych informacji o tej ocenie.";
+  const created = x.createdAt ? formatGradeDate(x.createdAt) : (x.date || "brak danych");
+  const edited = x.editedAt ? formatGradeDate(x.editedAt) : "nie edytowano";
+  return `<b>Informacje o ocenie:</b><br>Wstawiono: ${created}<br>Ostatnia edycja: ${edited}`;
+}
 window.openGrade=function(st,code){
   if(roleNow!=="teacher")return;
   if(roleNow!=="teacher"||currentCls()!=="6F")return;
@@ -1312,6 +1319,7 @@ window.openGrade=function(st,code){
   gmGrade.value=x.grade||"";
   gmOldGrade.value=x.oldGrade||"";
   gmDate.value=toDateTimeLocalValue(x.dateISO||x.date)||dateTimeLocalNow();
+  if(document.getElementById("gmEditInfo")) gmEditInfo.innerHTML=formatEditInfo(x);
   gmDesc.value=x.desc||"";
   gradeModal.style.display="flex";
 }
@@ -1320,14 +1328,21 @@ window.saveGrade=async function(){
   const chosen=gmDate.value || dateTimeLocalNow();
   const dateISO=new Date(chosen).toISOString();
   const key="6F|"+currentSubject()+"|"+editStudent+"|"+editCode;
+  const old=db.grades[key]||{};
+  const nowISO=new Date().toISOString();
+
   db.grades[key]={
     grade:gmGrade.value.trim(),
     oldGrade:gmOldGrade.value.trim(),
     desc:gmDesc.value,
     date:formatGradeDate(dateISO),
     dateISO:dateISO,
+    createdAt:old.createdAt || old.dateISO || dateISO,
+    editedAt:old.grade!==undefined ? nowISO : "",
+    editedDate:old.grade!==undefined ? formatGradeDate(nowISO) : "",
     improved:!!gmOldGrade.value.trim()
   };
+
   await save();
   renderAll();
   gradeModal.style.display="none";
