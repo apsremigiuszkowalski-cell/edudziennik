@@ -278,7 +278,17 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
 
       <div class="card teacherOnly" style="margin-top:20px;"><h2>Dodaj kolumnę ocen bieżących 6F</h2><div class="body">
         <div class="grid"><input id="colCode" placeholder="Kod, np. s1"><input id="colDesc" placeholder="Opis"><select id="colWeight"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select><select id="colSemester"><option value="1">Śródroczne</option><option value="2">Drugie półrocze</option></select></div>
-        <div class="grid"><label>Kolor <input id="colColor" type="color" value="#cc3333"></label><button class="primary" onclick="addColumn()">Dodaj kolumnę</button></div>
+        <div class="grid">
+<label>Kolor
+<select id="colColor">
+  <option value="#000000">⬛ Czarny</option>
+  <option value="#77aa55">🟩 Zielony</option>
+  <option value="#ff3333">🟥 Czerwony</option>
+  <option value="#a020f0">🟪 Fioletowy</option>
+  <option value="#2f74ff">🟦 Niebieski</option>
+</select>
+</label>
+<button class="primary" onclick="addColumn()">Dodaj kolumnę</button></div>
       </div></div>
     </div>
 
