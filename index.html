@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-<!-- WERSJA 643: temat lekcji i frekwencja z planu -->
+<!-- WERSJA 645: kartoteka ucznia, zestawienia i wydruki -->
 <!-- WERSJA 642: zastępstwa, dni wolne i aplikacja PWA -->
 <!-- WERSJA 638: kolory ocen z kodów kolumn działają -->\n<!-- WERSJA 637: informacje o edycji oceny i edycja daty -->
 <!-- WERSJA 636: najbliższe lekcje w następnych 7 dniach -->
@@ -207,13 +207,32 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
 .subBadge{display:inline-block;background:#a020f0;color:white;font-size:10px;padding:1px 4px;border-radius:3px;margin-left:4px}
 .dayOffCell{background:#ffecec!important;color:#b00020;font-weight:bold}
 
-.lessonEntryBadge{display:inline-block;background:#0a5fb4;color:white;font-size:10px;padding:1px 4px;border-radius:3px;margin-left:4px}
-.attendanceGrid{width:100%;border-collapse:collapse;min-width:0}
-.attendanceGrid th,.attendanceGrid td{border:1px solid #d7dde5;padding:6px;text-align:center}
-.attendanceGrid td.name{text-align:left}
-.attBtn{min-width:34px;padding:4px}
-.attBtn.active{background:#ffd940;font-weight:bold}
-.lessonRecordInfo{background:#eef7ff;border-left:5px solid #3485c8;padding:8px;margin:8px 0}
+.studentFileTabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.studentFileTabs button.active{background:#ffd940;font-weight:bold}
+.studentFileSection{display:none}
+.studentFileSection.active{display:block}
+.infoGrid{display:grid;grid-template-columns:180px 1fr;gap:6px 12px}
+.infoGrid .label{font-weight:bold;background:#eef3f8;padding:6px}
+.infoGrid .value{padding:6px;border-bottom:1px solid #d7dde5}
+.reportToolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.reportPage{background:white;border:1px solid #aaa;padding:20px;margin:10px auto;max-width:1000px}
+.reportPage h1,.reportPage h2{text-align:center}
+.statCard{display:inline-block;min-width:150px;border:1px solid #b8c5d1;background:#eef3f8;padding:12px;margin:5px;text-align:center}
+.statValue{font-size:22px;font-weight:bold;color:#18415f}
+.achievementPositive{color:#0a7a20;font-weight:bold}
+.needBadge{display:inline-block;background:#fff2a8;border:1px solid #d9a400;padding:3px 7px;border-radius:3px}
+@media print{
+  body.print-report .top,
+  body.print-report .ribbon,
+  body.print-report .lessonBar,
+  body.print-report .panel,
+  body.print-report .page,
+  body.print-report .modalBg{display:none!important}
+  body.print-report #printArea{display:block!important}
+  body.print-report .layout{display:block!important}
+  #printArea{border:0!important;margin:0!important;padding:0!important}
+  .noPrint{display:none!important}
+}
 </style>
 </head>
 <body>
@@ -248,6 +267,8 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
   <div class="tool parentNoAccess" onclick="show('swiadectwo')"><div class="ico"></div><div>Świadectwo</div></div>
   <div class="tool teacherOnly" onclick="show('uczniowie')"><div class="ico blue"></div><div>Uczniowie</div></div>
   <div class="tool teacherOnly" onclick="show('konta')"><div class="ico green"></div><div>Konta</div></div>
+  <div class="tool" onclick="show('kartoteka')"><div class="ico blue"></div><div>Kartoteka</div></div>
+  <div class="tool teacherOnly" onclick="show('raporty')"><div class="ico green"></div><div>Raporty</div></div>
 </div>
 
 <div class="lessonBar">
@@ -434,6 +455,70 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
       </div></div>
     </div>
 
+
+    <div id="kartoteka" class="page hidden">
+      <div class="card"><h2>Kartoteka ucznia</h2><div class="body">
+        <div class="grid">
+          <select id="fileStudent" onchange="selectedStudent=this.value;renderStudentFile()"></select>
+          <button onclick="renderStudentFile()">Odśwież kartotekę</button>
+        </div>
+        <div class="studentFileTabs">
+          <button class="active" onclick="showStudentFileTab('basic',this)">Dane podstawowe</button>
+          <button onclick="showStudentFileTab('parents',this)">Dane rodziców</button>
+          <button onclick="showStudentFileTab('attendance',this)">Historia frekwencji</button>
+          <button onclick="showStudentFileTab('absences',this)">Zwolnienia i nieobecności</button>
+          <button onclick="showStudentFileTab('achievements',this)">Osiągnięcia i konkursy</button>
+          <button onclick="showStudentFileTab('needs',this)">Specjalne potrzeby</button>
+          <button onclick="showStudentFileTab('history',this)">Historia ocen i uwag</button>
+        </div>
+
+        <div id="file-basic" class="studentFileSection active"><div id="fileBasic"></div></div>
+        <div id="file-parents" class="studentFileSection"><div id="fileParents"></div></div>
+        <div id="file-attendance" class="studentFileSection"><div id="fileAttendance"></div></div>
+        <div id="file-absences" class="studentFileSection"><div id="fileAbsences"></div></div>
+
+        <div id="file-achievements" class="studentFileSection">
+          <div class="teacherOnly">
+            <div class="grid">
+              <input id="achievementName" placeholder="Osiągnięcie / konkurs">
+              <input id="achievementPlace" placeholder="Miejsce / wynik">
+              <input id="achievementDate" type="date">
+              <button class="primary" onclick="addAchievement()">Dodaj osiągnięcie</button>
+            </div>
+          </div>
+          <div id="fileAchievements"></div>
+        </div>
+
+        <div id="file-needs" class="studentFileSection">
+          <div class="teacherOnly">
+            <textarea id="specialNeedsText" rows="5" placeholder="Specjalne potrzeby edukacyjne, dostosowania i zalecenia"></textarea>
+            <button class="primary" onclick="saveSpecialNeeds()">Zapisz informacje</button>
+          </div>
+          <div id="fileNeeds"></div>
+        </div>
+
+        <div id="file-history" class="studentFileSection"><div id="fileHistory"></div></div>
+      </div></div>
+    </div>
+
+    <div id="raporty" class="page hidden">
+      <div class="card teacherOnly"><h2>Zestawienia i wydruki</h2><div class="body">
+        <div class="grid">
+          <select id="reportStudent"></select>
+          <select id="reportClass"><option>6F</option><option>5F</option><option>4F</option></select>
+          <select id="reportSemester"><option value="1">I semestr</option><option value="2">II semestr</option><option value="all">Cały rok</option></select>
+        </div>
+        <div class="reportToolbar">
+          <button class="primary" onclick="makeGradesReport()">Eksport ocen do PDF</button>
+          <button onclick="makeParentMeetingCard()">Kartka na wywiadówkę</button>
+          <button onclick="makeAttendanceStats()">Statystyki frekwencji</button>
+          <button onclick="makeHomeroomReport()">Raport wychowawcy</button>
+          <button onclick="makeWholeJournal()">Wydruk całego dziennika klasy</button>
+        </div>
+        <div id="reportPreview"></div>
+      </div></div>
+    </div>
+
     <div id="poczta" class="page hidden">
       <div class="card"><h2>Skrzynka pocztowa</h2><div class="body">
         <div class="grid">
@@ -465,10 +550,13 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
       <div class="menuItem parentNoAccess" onclick="show('swiadectwo')">Drukuj świadectwo</div>
       <div class="menuItem teacherOnly" onclick="show('uczniowie')">Uczniowie</div>
       <div class="menuItem teacherOnly" onclick="show('konta')">Konta</div>
+      <div class="menuItem" onclick="show('kartoteka')">Kartoteka ucznia</div>
+      <div class="menuItem teacherOnly" onclick="show('raporty')">Zestawienia i wydruki</div>
     </div>
   </aside>
 </div>
 </section>
+<div id="printArea" style="display:none"></div>
 
 <div id="gradeModal" class="modalBg">
   <div class="modal"><h3>Wstaw ocenę bieżącą</h3><div class="modalBody">
@@ -586,30 +674,6 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
   </div></div>
 </div>
 
-
-<div id="lessonRegisterModal" class="modalBg">
-  <div class="modal" style="width:760px;max-width:96vw"><h3>Temat lekcji i frekwencja</h3><div class="modalBody">
-    <input id="lrPlanIndex" type="hidden">
-    <input id="lrDate" type="hidden">
-    <div id="lrInfo" class="lessonRecordInfo"></div>
-
-    <label>Temat lekcji</label>
-    <input id="lrTopic" placeholder="Wpisz temat lekcji">
-
-    <label>Opis lekcji / informacja dla ucznia i rodzica</label>
-    <textarea id="lrDescription" rows="3"></textarea>
-
-    <label>Praca domowa</label>
-    <textarea id="lrHomework" rows="2"></textarea>
-
-    <h4>Frekwencja</h4>
-    <div style="overflow:auto"><table id="lrAttendanceTable" class="attendanceGrid"></table></div>
-
-    <button class="primary teacherOnly" onclick="saveLessonRegister()">Zapisz temat i frekwencję</button>
-    <button onclick="lessonRegisterModal.style.display='none'">Zamknij</button>
-  </div></div>
-</div>
-
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
@@ -644,7 +708,7 @@ const defaultData={
     {no:"1",name:"Kowalski Czesław",email:"czeskowa34@edudziennik.local",password:"",parentEmail:"rodzic.czeslaw@example.com"},
     {no:"2",name:"Kowalski Rafał Paweł",email:"rafkowa12@edudziennik.local",password:"",parentEmail:"rekin123@interia.pl"}
   ],
-  columns:[],grades:{},finals:{},attendance:[],lessons:[],notes:[],parentMessages:[],events:[],messages:[],plans:[],substitutions:[],daysOff:[],lessonRegisters:[]
+  columns:[],grades:{},finals:{},attendance:[],lessons:[],notes:[],parentMessages:[],events:[],messages:[],plans:[],substitutions:[],daysOff:[],achievements:[],specialNeeds:{}
 };
 
 let db=structuredClone(defaultData);
@@ -818,7 +882,8 @@ onAuthStateChanged(auth, async (user)=>{
     if(!db.plans) db.plans = [];
     if(!db.substitutions) db.substitutions = [];
     if(!db.daysOff) db.daysOff = [];
-    if(!db.lessonRegisters) db.lessonRegisters = [];
+    if(!db.achievements) db.achievements = [];
+    if(!db.specialNeeds) db.specialNeeds = {};
     if(!db.exams) db.exams = [];
     if(!db.homework) db.homework = [];
     await setDoc(dataRef, db, {merge:false});
@@ -878,7 +943,16 @@ window.toggleClassFolder=function(c){
   collapsedClasses[c]=!collapsedClasses[c];
   renderTree();
 }
-function renderSelects(){[attStudent,noteStudent].forEach(sel=>sel.innerHTML=db.students.map(s=>`<option>${s.name}</option>`).join(""))}
+function renderSelects(){
+  [attStudent,noteStudent].forEach(sel=>sel.innerHTML=db.students.map(s=>`<option>${s.name}</option>`).join(""));
+  ["fileStudent","reportStudent"].forEach(id=>{
+    const sel=document.getElementById(id);
+    if(sel){
+      sel.innerHTML=db.students.map(s=>`<option>${s.name}</option>`).join("");
+      sel.value=selectedStudent;
+    }
+  });
+}
 
 window.addStudent=async function(){
   if(!studentName.value.trim()||!studentEmailNew.value.trim())return alert("Wpisz imię i e-mail.");
@@ -1745,6 +1819,7 @@ function renderAll(){
     txt('currentClass',currentCls()); txt('currentLesson',currentSubject()); txt('currentStudentText',selectedStudent||"—");
     renderTree();renderSelects();renderStudents();renderAccounts();renderColumns();renderGrades();renderFinals();renderAttendance();renderLessons();renderNotes();try{renderMailbox();}catch(e){console.error(e);}renderCertSelects();try{renderCalendar();renderUpcomingEvents();renderUpcomingLessons();renderUpcomingLessons();renderPlan();renderSubstitutions();renderDaysOff();}catch(e){}
     document.querySelectorAll(".teacherOnly").forEach(e=>e.style.display=roleNow==="teacher"?"":"none");
+  if(document.getElementById("fileStudent")) fileStudent.style.display=roleNow==="teacher"?"":"none";
     const clsSel=document.getElementById("classSelect"); if(clsSel) clsSel.style.display=roleNow==="teacher"?"":"none"; document.querySelectorAll(".parentNoAccess").forEach(e=>e.style.display=(roleNow==="parent"||roleNow==="student")?"none":"");
   }catch(err){
     console.error(err);
@@ -2218,8 +2293,7 @@ function renderPlan(){
         const shownSubject=sub?.subject||item.subject||"(bez nazwy)";
         const shownTeacher=sub?.newTeacher||item.teacher||"—";
         const shownRoom=sub?.room||item.room||"";
-        const register=getLessonRegister(cls,dateForCell,item.period);
-        out+=`<div class="planLesson ${item.kind==='other'?'other':''} ${cancelled?'cancelled':''} ${sub?'substituted':''}" draggable="${roleNow==='teacher'}" onclick="event.stopPropagation();openLessonRegister(${i},'${dateForCell}')" ondblclick="event.stopPropagation();openPlanEdit(${i})" ondragstart="startPlanDrag(event,${i})"><b>${shownSubject}</b>${cancelled?'<span class="cancelBadge">ODWOŁANA</span>':''}${sub?'<span class="subBadge">ZASTĘPSTWO</span>':''}${register&&register.topic?'<span class="lessonEntryBadge">TEMAT</span>':''}<div class="planMeta">${shownTeacher}${shownRoom?" | sala "+shownRoom:""}${sub&&sub.oldTeacher?`<br>za: ${sub.oldTeacher}`:""}${register&&register.topic?`<br>Temat: ${register.topic}`:""}</div></div>`;
+        out+=`<div class="planLesson ${item.kind==='other'?'other':''} ${cancelled?'cancelled':''} ${sub?'substituted':''}" draggable="${roleNow==='teacher'}" onclick="event.stopPropagation();openPlanEdit(${i})" ondragstart="startPlanDrag(event,${i})"><b>${shownSubject}</b>${cancelled?'<span class="cancelBadge">ODWOŁANA</span>':''}${sub?'<span class="subBadge">ZASTĘPSTWO</span>':''}<div class="planMeta">${shownTeacher}${shownRoom?" | sala "+shownRoom:""}${sub&&sub.oldTeacher?`<br>za: ${sub.oldTeacher}`:""}</div></div>`;
       });
       out+="</td>";
     }
@@ -2270,108 +2344,180 @@ function renderDaysOff(){
 
 if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(()=>{});}
 
-/* ===== TEMAT LEKCJI I FREKWENCJA Z PLANU ===== */
-function lessonRegisterKey(cls,date,period){
-  return `${cls}|${date}|${period}`;
+/* ===== KARTOTEKA UCZNIA ===== */
+window.showStudentFileTab=function(name,btn){
+  document.querySelectorAll(".studentFileSection").forEach(x=>x.classList.remove("active"));
+  document.querySelectorAll(".studentFileTabs button").forEach(x=>x.classList.remove("active"));
+  const section=document.getElementById("file-"+name);
+  if(section)section.classList.add("active");
+  if(btn)btn.classList.add("active");
 }
-function getLessonRegister(cls,date,period){
-  const key=lessonRegisterKey(cls,date,period);
-  return (db.lessonRegisters||[]).find(x=>x.key===key);
+function selectedFileStudent(){
+  if(roleNow==="teacher") return document.getElementById("fileStudent")?.value || selectedStudent;
+  return selectedStudent;
 }
-function attendanceStatusLabel(s){
-  return {present:"Obecny",absent:"Nieobecny",late:"Spóźnienie",excused:"Usprawiedliwiony",released:"Zwolniony"}[s]||"Brak";
-}
-window.setRegisterAttendance=function(studentName,status){
-  const row=document.querySelector(`[data-student-row="${CSS.escape(studentName)}"]`);
-  if(!row)return;
-  row.dataset.status=status;
-  row.querySelectorAll(".attBtn").forEach(b=>b.classList.toggle("active",b.dataset.status===status));
-}
-window.openLessonRegister=function(planIndex,dateStr){
-  const item=(db.plans||[])[planIndex];
-  if(!item)return;
-  const cls=item.cls||currentCls();
-  const period=Number(item.period||1);
-  const rec=getLessonRegister(cls,dateStr,period)||{};
-  lrPlanIndex.value=String(planIndex);
-  lrDate.value=dateStr;
-  lrTopic.value=rec.topic||"";
-  lrDescription.value=rec.description||"";
-  lrHomework.value=rec.homework||"";
-
-  const time=(typeof lessonTimes!=="undefined"&&lessonTimes[period])?lessonTimes[period]:"";
-  lrInfo.innerHTML=`<b>${item.subject||"(bez nazwy)"}</b><br>
-    Data: ${dateStr} | Lekcja ${period}${time?` (${time})`:""}<br>
-    Klasa: ${cls} | Nauczyciel: ${item.teacher||"Remigiusz Kowalski"}${item.room?` | Sala: ${item.room}`:""}`;
-
-  const att=rec.attendance||{};
-  let out="<tr><th>Nr</th><th>Uczeń</th><th>Ob.</th><th>Nb.</th><th>Sp.</th><th>Usp.</th><th>Zw.</th></tr>";
-  (db.students||[]).forEach(s=>{
-    const status=att[s.name]||"present";
-    out+=`<tr data-student-row="${s.name}" data-status="${status}">
-      <td>${s.no||""}</td><td class="name">${s.name}</td>
-      <td><button class="attBtn ${status==="present"?"active":""}" data-status="present" onclick="setRegisterAttendance('${s.name}','present')">✓</button></td>
-      <td><button class="attBtn ${status==="absent"?"active":""}" data-status="absent" onclick="setRegisterAttendance('${s.name}','absent')">×</button></td>
-      <td><button class="attBtn ${status==="late"?"active":""}" data-status="late" onclick="setRegisterAttendance('${s.name}','late')">S</button></td>
-      <td><button class="attBtn ${status==="excused"?"active":""}" data-status="excused" onclick="setRegisterAttendance('${s.name}','excused')">U</button></td>
-      <td><button class="attBtn ${status==="released"?"active":""}" data-status="released" onclick="setRegisterAttendance('${s.name}','released')">Z</button></td>
-    </tr>`;
+function studentGradesHistory(st){
+  const rows=[];
+  Object.entries(db.grades||{}).forEach(([key,g])=>{
+    const parts=key.split("|");
+    if(parts.length<4 || parts[2]!==st)return;
+    const col=(db.columns||[]).find(c=>c.subject===parts[1]&&c.code===parts[3]);
+    rows.push({cls:parts[0],subject:parts[1],code:parts[3],grade:g.grade||"",date:g.date||"",desc:g.desc||col?.desc||"",weight:col?.weight||1});
   });
-  lrAttendanceTable.innerHTML=out;
-  document.querySelectorAll("#lessonRegisterModal .teacherOnly").forEach(e=>e.style.display=roleNow==="teacher"?"":"none");
-  if(roleNow!=="teacher"){
-    lrTopic.readOnly=true;lrDescription.readOnly=true;lrHomework.readOnly=true;
-    lrAttendanceTable.querySelectorAll("button").forEach(b=>b.disabled=true);
-  }else{
-    lrTopic.readOnly=false;lrDescription.readOnly=false;lrHomework.readOnly=false;
-  }
-  lessonRegisterModal.style.display="flex";
+  return rows.sort((a,b)=>String(b.date).localeCompare(String(a.date)));
 }
-window.saveLessonRegister=async function(){
+function studentAttendanceHistory(st){
+  return (db.attendance||[]).filter(a=>a.student===st).sort((a,b)=>String(b.lessonDate||b.date).localeCompare(String(a.lessonDate||a.date)));
+}
+function attendanceSummary(st){
+  const rows=studentAttendanceHistory(st);
+  const count=(terms)=>rows.filter(a=>terms.some(t=>String(a.status||"").toLowerCase().includes(t))).length;
+  const present=count(["obecny"]);
+  const absent=count(["nieobecny"]);
+  const late=count(["spóź"]);
+  const excused=count(["uspraw"]);
+  const released=count(["zwoln"]);
+  const total=rows.length;
+  const pct=total?((present+excused+released)/total*100):0;
+  return {rows,present,absent,late,excused,released,total,pct};
+}
+function renderStudentFile(){
+  const st=selectedFileStudent();
+  const s=(db.students||[]).find(x=>x.name===st);
+  if(!s)return;
+
+  fileBasic.innerHTML=`<div class="infoGrid">
+    <div class="label">Imię i nazwisko</div><div class="value">${s.name}</div>
+    <div class="label">Numer w dzienniku</div><div class="value">${s.no||"—"}</div>
+    <div class="label">Klasa</div><div class="value">${currentCls()}</div>
+    <div class="label">E-mail ucznia</div><div class="value">${s.email||"—"}</div>
+  </div>`;
+
+  fileParents.innerHTML=`<div class="infoGrid">
+    <div class="label">E-mail rodzica</div><div class="value">${s.parentEmail||"—"}</div>
+    <div class="label">Kontakt zapisany</div><div class="value">${s.parentEmail?"tak":"nie"}</div>
+  </div>`;
+
+  const sum=attendanceSummary(st);
+  fileAttendance.innerHTML=`<div>
+    <div class="statCard"><div class="statValue">${sum.total}</div>Wpisów</div>
+    <div class="statCard"><div class="statValue">${sum.present}</div>Obecności</div>
+    <div class="statCard"><div class="statValue">${sum.absent}</div>Nieobecności</div>
+    <div class="statCard"><div class="statValue">${sum.late}</div>Spóźnienia</div>
+    <div class="statCard"><div class="statValue">${sum.pct.toFixed(1)}%</div>Frekwencja</div>
+  </div>
+  <table><tr><th>Data</th><th>Przedmiot</th><th>Status</th><th>Lekcja</th></tr>
+  ${sum.rows.map(a=>`<tr><td>${a.lessonDate||a.date||"—"}</td><td>${a.subject||"—"}</td><td>${a.status||"—"}</td><td>${a.period||"—"}</td></tr>`).join("")}</table>`;
+
+  const abs=sum.rows.filter(a=>/nieobec|zwoln|uspraw/i.test(String(a.status||"")));
+  fileAbsences.innerHTML=`<table><tr><th>Data</th><th>Przedmiot</th><th>Status</th><th>Lekcja</th></tr>
+  ${abs.map(a=>`<tr><td>${a.lessonDate||a.date||"—"}</td><td>${a.subject||"—"}</td><td>${a.status||"—"}</td><td>${a.period||"—"}</td></tr>`).join("")||"<tr><td colspan='4'>Brak wpisów.</td></tr>"}</table>`;
+
+  const ach=(db.achievements||[]).filter(a=>a.student===st);
+  fileAchievements.innerHTML=`<table><tr><th>Data</th><th>Osiągnięcie / konkurs</th><th>Wynik</th><th class="teacherOnly">Akcja</th></tr>
+  ${ach.map(a=>{const i=db.achievements.indexOf(a);return `<tr><td>${a.date||"—"}</td><td class="achievementPositive">${a.name}</td><td>${a.place||"—"}</td><td class="teacherOnly"><button class="danger" onclick="deleteAchievement(${i})">Usuń</button></td></tr>`}).join("")||"<tr><td colspan='4'>Brak osiągnięć.</td></tr>"}</table>`;
+
+  const needs=(db.specialNeeds||{})[st]||"Brak wpisanych specjalnych potrzeb edukacyjnych.";
+  if(document.getElementById("specialNeedsText"))specialNeedsText.value=(db.specialNeeds||{})[st]||"";
+  fileNeeds.innerHTML=`<p><span class="needBadge">Informacja poufna</span></p><div class="status">${needs}</div>`;
+
+  const grades=studentGradesHistory(st);
+  const notes=(db.notes||[]).filter(n=>n.student===st).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  fileHistory.innerHTML=`<h3>Historia ocen</h3>
+    <table><tr><th>Data</th><th>Klasa</th><th>Przedmiot</th><th>Kod</th><th>Ocena</th><th>Waga</th><th>Opis</th></tr>
+    ${grades.map(g=>`<tr><td>${g.date||"—"}</td><td>${g.cls}</td><td>${g.subject}</td><td>${g.code}</td><td><b>${g.grade}</b></td><td>${g.weight}</td><td>${g.desc||"—"}</td></tr>`).join("")||"<tr><td colspan='7'>Brak ocen.</td></tr>"}</table>
+    <h3>Historia uwag</h3>
+    <table><tr><th>Data</th><th>Typ</th><th>Punkty</th><th>Treść</th></tr>
+    ${notes.map(n=>`<tr><td>${n.date||"—"}</td><td>${n.type||"—"}</td><td>${n.points||"—"}</td><td>${n.text||"—"}</td></tr>`).join("")||"<tr><td colspan='4'>Brak uwag.</td></tr>"}</table>`;
+
+  document.querySelectorAll("#kartoteka .teacherOnly").forEach(e=>e.style.display=roleNow==="teacher"?"":"none");
+}
+window.addAchievement=async function(){
   if(roleNow!=="teacher")return;
-  const planIndex=Number(lrPlanIndex.value);
-  const item=(db.plans||[])[planIndex];
-  if(!item)return;
-  const cls=item.cls||currentCls();
-  const date=lrDate.value;
-  const period=Number(item.period||1);
-  const key=lessonRegisterKey(cls,date,period);
-  const attendance={};
-  document.querySelectorAll("#lrAttendanceTable tr[data-student-row]").forEach(row=>{
-    attendance[row.dataset.studentRow]=row.dataset.status||"present";
-  });
+  const st=selectedFileStudent();
+  if(!achievementName.value.trim())return alert("Wpisz osiągnięcie.");
+  db.achievements=db.achievements||[];
+  db.achievements.push({student:st,name:achievementName.value.trim(),place:achievementPlace.value.trim(),date:achievementDate.value||new Date().toISOString().slice(0,10)});
+  achievementName.value=achievementPlace.value="";
+  await save();renderStudentFile();
+}
+window.deleteAchievement=async function(i){
+  if(roleNow!=="teacher")return;
+  if(!confirm("Usunąć osiągnięcie?"))return;
+  db.achievements.splice(i,1);await save();renderStudentFile();
+}
+window.saveSpecialNeeds=async function(){
+  if(roleNow!=="teacher")return;
+  db.specialNeeds=db.specialNeeds||{};
+  db.specialNeeds[selectedFileStudent()]=specialNeedsText.value.trim();
+  await save();renderStudentFile();
+}
 
-  db.lessonRegisters=db.lessonRegisters||[];
-  const oldIndex=db.lessonRegisters.findIndex(x=>x.key===key);
-  const rec={
-    key,cls,date,period,
-    subject:item.subject||"",
-    teacher:item.teacher||"Remigiusz Kowalski",
-    room:item.room||"",
-    topic:lrTopic.value.trim(),
-    description:lrDescription.value.trim(),
-    homework:lrHomework.value.trim(),
-    attendance,
-    updatedAt:new Date().toISOString(),
-    updatedBy:currentUser?.name||""
-  };
-  if(oldIndex>=0)db.lessonRegisters[oldIndex]=rec;
-  else db.lessonRegisters.push(rec);
-
-  // synchronizacja z istniejącymi tematami i frekwencją
-  db.lessons=db.lessons||[];
-  const lessonIndex=db.lessons.findIndex(x=>x.cls===cls&&x.date===date&&String(x.lessonNo)===String(period));
-  const lessonObj={cls,subject:item.subject||"",topic:rec.topic,desc:rec.description+(rec.homework?`\nPraca domowa: ${rec.homework}`:""),lessonNo:String(period),date,held:"tak",realization:"zrealizowano"};
-  if(lessonIndex>=0)db.lessons[lessonIndex]=lessonObj; else db.lessons.push(lessonObj);
-
-  db.attendance=(db.attendance||[]).filter(a=>!(a.cls===cls&&a.lessonDate===date&&Number(a.period)===period));
-  Object.entries(attendance).forEach(([student,status])=>{
-    db.attendance.push({cls,subject:item.subject||"",student,status:attendanceStatusLabel(status),date:now(),lessonDate:date,period});
-  });
-
-  await save();
-  lessonRegisterModal.style.display="none";
-  renderAll();
+/* ===== ZESTAWIENIA I WYDRUKI ===== */
+function reportStudentName(){return document.getElementById("reportStudent")?.value||selectedStudent}
+function reportClassName(){return document.getElementById("reportClass")?.value||currentCls()}
+function reportSemesterValue(){return document.getElementById("reportSemester")?.value||"all"}
+function setReport(html,title){
+  reportPreview.innerHTML=html;
+  printArea.innerHTML=html;
+  document.title=title||"Raport EduPanel";
+}
+window.printReport=function(){
+  document.body.classList.add("print-report");
+  printArea.style.display="block";
+  window.print();
+  setTimeout(()=>{document.body.classList.remove("print-report");printArea.style.display="none"},300);
+}
+function gradeRowsForReport(st,cls,sem){
+  return studentGradesHistory(st).filter(g=>g.cls===cls && (sem==="all" || String((db.columns||[]).find(c=>c.subject===g.subject&&c.code===g.code)?.semester||"1")===String(sem)));
+}
+window.makeGradesReport=function(){
+  const st=reportStudentName(),cls=reportClassName(),sem=reportSemesterValue();
+  const rows=gradeRowsForReport(st,cls,sem);
+  const subjects=[...new Set(rows.map(r=>r.subject))];
+  const html=`<div class="reportPage"><h1>Zestawienie ocen</h1><p><b>Uczeń:</b> ${st}<br><b>Klasa:</b> ${cls}<br><b>Okres:</b> ${sem==="all"?"cały rok":sem+" semestr"}</p>
+    ${subjects.map(sub=>`<h3>${sub}</h3><table><tr><th>Data</th><th>Kod</th><th>Ocena</th><th>Waga</th><th>Opis</th></tr>${rows.filter(r=>r.subject===sub).map(r=>`<tr><td>${r.date||"—"}</td><td>${r.code}</td><td>${r.grade}</td><td>${r.weight}</td><td>${r.desc||"—"}</td></tr>`).join("")}</table>`).join("")}
+    <p class="noPrint"><button class="primary" onclick="printReport()">Drukuj / zapisz jako PDF</button></p></div>`;
+  setReport(html,"Oceny - "+st);
+}
+window.makeParentMeetingCard=function(){
+  const st=reportStudentName(),cls=reportClassName();
+  const grades=gradeRowsForReport(st,cls,"all");
+  const sum=attendanceSummary(st);
+  const notes=(db.notes||[]).filter(n=>n.student===st);
+  const html=`<div class="reportPage"><h1>Kartka na wywiadówkę</h1><p><b>Uczeń:</b> ${st}<br><b>Klasa:</b> ${cls}</p>
+  <h2>Oceny</h2><table><tr><th>Przedmiot</th><th>Oceny</th></tr>${[...new Set(grades.map(g=>g.subject))].map(sub=>`<tr><td>${sub}</td><td>${grades.filter(g=>g.subject===sub).map(g=>g.grade).join(", ")||"—"}</td></tr>`).join("")}</table>
+  <h2>Frekwencja</h2><p>Obecności: ${sum.present}, nieobecności: ${sum.absent}, spóźnienia: ${sum.late}, frekwencja: ${sum.pct.toFixed(1)}%</p>
+  <h2>Uwagi</h2><ul>${notes.map(n=>`<li>${n.date||""} — ${n.type||""}: ${n.text||""}</li>`).join("")||"<li>Brak uwag</li>"}</ul>
+  <p class="noPrint"><button class="primary" onclick="printReport()">Drukuj / zapisz jako PDF</button></p></div>`;
+  setReport(html,"Wywiadówka - "+st);
+}
+window.makeAttendanceStats=function(){
+  const cls=reportClassName();
+  const rows=(db.students||[]).map(s=>({name:s.name,...attendanceSummary(s.name)}));
+  const html=`<div class="reportPage"><h1>Statystyki frekwencji klasy ${cls}</h1>
+  <table><tr><th>Uczeń</th><th>Wpisów</th><th>Obecności</th><th>Nieobecności</th><th>Spóźnienia</th><th>Usprawiedliwione</th><th>Zwolnienia</th><th>Frekwencja</th></tr>
+  ${rows.map(r=>`<tr><td>${r.name}</td><td>${r.total}</td><td>${r.present}</td><td>${r.absent}</td><td>${r.late}</td><td>${r.excused}</td><td>${r.released}</td><td>${r.pct.toFixed(1)}%</td></tr>`).join("")}</table>
+  <p class="noPrint"><button class="primary" onclick="printReport()">Drukuj / zapisz jako PDF</button></p></div>`;
+  setReport(html,"Frekwencja - "+cls);
+}
+window.makeHomeroomReport=function(){
+  const cls=reportClassName();
+  const html=`<div class="reportPage"><h1>Raport wychowawcy — ${cls}</h1>
+  ${(db.students||[]).map(s=>{const a=attendanceSummary(s.name),g=studentGradesHistory(s.name).filter(x=>x.cls===cls),n=(db.notes||[]).filter(x=>x.student===s.name);return `<h2>${s.name}</h2><p>Ocen: ${g.length}, uwag: ${n.length}, frekwencja: ${a.pct.toFixed(1)}%, nieobecności: ${a.absent}, spóźnienia: ${a.late}</p>`}).join("")}
+  <p class="noPrint"><button class="primary" onclick="printReport()">Drukuj / zapisz jako PDF</button></p></div>`;
+  setReport(html,"Raport wychowawcy - "+cls);
+}
+window.makeWholeJournal=function(){
+  const cls=reportClassName();
+  const lessons=(db.lessons||[]).filter(l=>l.cls===cls);
+  const html=`<div class="reportPage"><h1>Dziennik klasy ${cls}</h1>
+  <h2>Lista uczniów</h2><table><tr><th>Nr</th><th>Uczeń</th><th>E-mail</th><th>Rodzic</th></tr>${(db.students||[]).map(s=>`<tr><td>${s.no}</td><td>${s.name}</td><td>${s.email||"—"}</td><td>${s.parentEmail||"—"}</td></tr>`).join("")}</table>
+  <h2>Tematy lekcji</h2><table><tr><th>Data</th><th>Nr</th><th>Przedmiot</th><th>Temat</th><th>Realizacja</th></tr>${lessons.map(l=>`<tr><td>${l.date||"—"}</td><td>${l.lessonNo||"—"}</td><td>${l.subject||"—"}</td><td>${l.topic||"—"}</td><td>${l.realization||"—"}</td></tr>`).join("")}</table>
+  <h2>Frekwencja</h2>${(db.students||[]).map(s=>{const a=attendanceSummary(s.name);return `<p>${s.name}: ${a.pct.toFixed(1)}% — nieobecności ${a.absent}, spóźnienia ${a.late}</p>`}).join("")}
+  <h2>Uwagi</h2><table><tr><th>Data</th><th>Uczeń</th><th>Typ</th><th>Treść</th></tr>${(db.notes||[]).map(n=>`<tr><td>${n.date||"—"}</td><td>${n.student||"—"}</td><td>${n.type||"—"}</td><td>${n.text||"—"}</td></tr>`).join("")}</table>
+  <p class="noPrint"><button class="primary" onclick="printReport()">Drukuj / zapisz jako PDF</button></p></div>`;
+  setReport(html,"Dziennik klasy - "+cls);
 }
 
 </script>
