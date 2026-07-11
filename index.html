@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
+<!-- WERSJA 643: temat lekcji i frekwencja z planu -->
 <!-- WERSJA 642: zastępstwa, dni wolne i aplikacja PWA -->
 <!-- WERSJA 638: kolory ocen z kodów kolumn działają -->\n<!-- WERSJA 637: informacje o edycji oceny i edycja daty -->
 <!-- WERSJA 636: najbliższe lekcje w następnych 7 dniach -->
@@ -205,6 +206,14 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
 .planLesson.substituted{background:#f5e8ff!important;border-left-color:#a020f0!important}
 .subBadge{display:inline-block;background:#a020f0;color:white;font-size:10px;padding:1px 4px;border-radius:3px;margin-left:4px}
 .dayOffCell{background:#ffecec!important;color:#b00020;font-weight:bold}
+
+.lessonEntryBadge{display:inline-block;background:#0a5fb4;color:white;font-size:10px;padding:1px 4px;border-radius:3px;margin-left:4px}
+.attendanceGrid{width:100%;border-collapse:collapse;min-width:0}
+.attendanceGrid th,.attendanceGrid td{border:1px solid #d7dde5;padding:6px;text-align:center}
+.attendanceGrid td.name{text-align:left}
+.attBtn{min-width:34px;padding:4px}
+.attBtn.active{background:#ffd940;font-weight:bold}
+.lessonRecordInfo{background:#eef7ff;border-left:5px solid #3485c8;padding:8px;margin:8px 0}
 </style>
 </head>
 <body>
@@ -577,6 +586,30 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
   </div></div>
 </div>
 
+
+<div id="lessonRegisterModal" class="modalBg">
+  <div class="modal" style="width:760px;max-width:96vw"><h3>Temat lekcji i frekwencja</h3><div class="modalBody">
+    <input id="lrPlanIndex" type="hidden">
+    <input id="lrDate" type="hidden">
+    <div id="lrInfo" class="lessonRecordInfo"></div>
+
+    <label>Temat lekcji</label>
+    <input id="lrTopic" placeholder="Wpisz temat lekcji">
+
+    <label>Opis lekcji / informacja dla ucznia i rodzica</label>
+    <textarea id="lrDescription" rows="3"></textarea>
+
+    <label>Praca domowa</label>
+    <textarea id="lrHomework" rows="2"></textarea>
+
+    <h4>Frekwencja</h4>
+    <div style="overflow:auto"><table id="lrAttendanceTable" class="attendanceGrid"></table></div>
+
+    <button class="primary teacherOnly" onclick="saveLessonRegister()">Zapisz temat i frekwencję</button>
+    <button onclick="lessonRegisterModal.style.display='none'">Zamknij</button>
+  </div></div>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
@@ -611,7 +644,7 @@ const defaultData={
     {no:"1",name:"Kowalski Czesław",email:"czeskowa34@edudziennik.local",password:"",parentEmail:"rodzic.czeslaw@example.com"},
     {no:"2",name:"Kowalski Rafał Paweł",email:"rafkowa12@edudziennik.local",password:"",parentEmail:"rekin123@interia.pl"}
   ],
-  columns:[],grades:{},finals:{},attendance:[],lessons:[],notes:[],parentMessages:[],events:[],messages:[],plans:[],substitutions:[],daysOff:[]
+  columns:[],grades:{},finals:{},attendance:[],lessons:[],notes:[],parentMessages:[],events:[],messages:[],plans:[],substitutions:[],daysOff:[],lessonRegisters:[]
 };
 
 let db=structuredClone(defaultData);
@@ -785,6 +818,7 @@ onAuthStateChanged(auth, async (user)=>{
     if(!db.plans) db.plans = [];
     if(!db.substitutions) db.substitutions = [];
     if(!db.daysOff) db.daysOff = [];
+    if(!db.lessonRegisters) db.lessonRegisters = [];
     if(!db.exams) db.exams = [];
     if(!db.homework) db.homework = [];
     await setDoc(dataRef, db, {merge:false});
@@ -2184,7 +2218,8 @@ function renderPlan(){
         const shownSubject=sub?.subject||item.subject||"(bez nazwy)";
         const shownTeacher=sub?.newTeacher||item.teacher||"—";
         const shownRoom=sub?.room||item.room||"";
-        out+=`<div class="planLesson ${item.kind==='other'?'other':''} ${cancelled?'cancelled':''} ${sub?'substituted':''}" draggable="${roleNow==='teacher'}" onclick="event.stopPropagation();openPlanEdit(${i})" ondragstart="startPlanDrag(event,${i})"><b>${shownSubject}</b>${cancelled?'<span class="cancelBadge">ODWOŁANA</span>':''}${sub?'<span class="subBadge">ZASTĘPSTWO</span>':''}<div class="planMeta">${shownTeacher}${shownRoom?" | sala "+shownRoom:""}${sub&&sub.oldTeacher?`<br>za: ${sub.oldTeacher}`:""}</div></div>`;
+        const register=getLessonRegister(cls,dateForCell,item.period);
+        out+=`<div class="planLesson ${item.kind==='other'?'other':''} ${cancelled?'cancelled':''} ${sub?'substituted':''}" draggable="${roleNow==='teacher'}" onclick="event.stopPropagation();openLessonRegister(${i},'${dateForCell}')" ondblclick="event.stopPropagation();openPlanEdit(${i})" ondragstart="startPlanDrag(event,${i})"><b>${shownSubject}</b>${cancelled?'<span class="cancelBadge">ODWOŁANA</span>':''}${sub?'<span class="subBadge">ZASTĘPSTWO</span>':''}${register&&register.topic?'<span class="lessonEntryBadge">TEMAT</span>':''}<div class="planMeta">${shownTeacher}${shownRoom?" | sala "+shownRoom:""}${sub&&sub.oldTeacher?`<br>za: ${sub.oldTeacher}`:""}${register&&register.topic?`<br>Temat: ${register.topic}`:""}</div></div>`;
       });
       out+="</td>";
     }
@@ -2234,6 +2269,111 @@ function renderDaysOff(){
 }
 
 if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(()=>{});}
+
+/* ===== TEMAT LEKCJI I FREKWENCJA Z PLANU ===== */
+function lessonRegisterKey(cls,date,period){
+  return `${cls}|${date}|${period}`;
+}
+function getLessonRegister(cls,date,period){
+  const key=lessonRegisterKey(cls,date,period);
+  return (db.lessonRegisters||[]).find(x=>x.key===key);
+}
+function attendanceStatusLabel(s){
+  return {present:"Obecny",absent:"Nieobecny",late:"Spóźnienie",excused:"Usprawiedliwiony",released:"Zwolniony"}[s]||"Brak";
+}
+window.setRegisterAttendance=function(studentName,status){
+  const row=document.querySelector(`[data-student-row="${CSS.escape(studentName)}"]`);
+  if(!row)return;
+  row.dataset.status=status;
+  row.querySelectorAll(".attBtn").forEach(b=>b.classList.toggle("active",b.dataset.status===status));
+}
+window.openLessonRegister=function(planIndex,dateStr){
+  const item=(db.plans||[])[planIndex];
+  if(!item)return;
+  const cls=item.cls||currentCls();
+  const period=Number(item.period||1);
+  const rec=getLessonRegister(cls,dateStr,period)||{};
+  lrPlanIndex.value=String(planIndex);
+  lrDate.value=dateStr;
+  lrTopic.value=rec.topic||"";
+  lrDescription.value=rec.description||"";
+  lrHomework.value=rec.homework||"";
+
+  const time=(typeof lessonTimes!=="undefined"&&lessonTimes[period])?lessonTimes[period]:"";
+  lrInfo.innerHTML=`<b>${item.subject||"(bez nazwy)"}</b><br>
+    Data: ${dateStr} | Lekcja ${period}${time?` (${time})`:""}<br>
+    Klasa: ${cls} | Nauczyciel: ${item.teacher||"Remigiusz Kowalski"}${item.room?` | Sala: ${item.room}`:""}`;
+
+  const att=rec.attendance||{};
+  let out="<tr><th>Nr</th><th>Uczeń</th><th>Ob.</th><th>Nb.</th><th>Sp.</th><th>Usp.</th><th>Zw.</th></tr>";
+  (db.students||[]).forEach(s=>{
+    const status=att[s.name]||"present";
+    out+=`<tr data-student-row="${s.name}" data-status="${status}">
+      <td>${s.no||""}</td><td class="name">${s.name}</td>
+      <td><button class="attBtn ${status==="present"?"active":""}" data-status="present" onclick="setRegisterAttendance('${s.name}','present')">✓</button></td>
+      <td><button class="attBtn ${status==="absent"?"active":""}" data-status="absent" onclick="setRegisterAttendance('${s.name}','absent')">×</button></td>
+      <td><button class="attBtn ${status==="late"?"active":""}" data-status="late" onclick="setRegisterAttendance('${s.name}','late')">S</button></td>
+      <td><button class="attBtn ${status==="excused"?"active":""}" data-status="excused" onclick="setRegisterAttendance('${s.name}','excused')">U</button></td>
+      <td><button class="attBtn ${status==="released"?"active":""}" data-status="released" onclick="setRegisterAttendance('${s.name}','released')">Z</button></td>
+    </tr>`;
+  });
+  lrAttendanceTable.innerHTML=out;
+  document.querySelectorAll("#lessonRegisterModal .teacherOnly").forEach(e=>e.style.display=roleNow==="teacher"?"":"none");
+  if(roleNow!=="teacher"){
+    lrTopic.readOnly=true;lrDescription.readOnly=true;lrHomework.readOnly=true;
+    lrAttendanceTable.querySelectorAll("button").forEach(b=>b.disabled=true);
+  }else{
+    lrTopic.readOnly=false;lrDescription.readOnly=false;lrHomework.readOnly=false;
+  }
+  lessonRegisterModal.style.display="flex";
+}
+window.saveLessonRegister=async function(){
+  if(roleNow!=="teacher")return;
+  const planIndex=Number(lrPlanIndex.value);
+  const item=(db.plans||[])[planIndex];
+  if(!item)return;
+  const cls=item.cls||currentCls();
+  const date=lrDate.value;
+  const period=Number(item.period||1);
+  const key=lessonRegisterKey(cls,date,period);
+  const attendance={};
+  document.querySelectorAll("#lrAttendanceTable tr[data-student-row]").forEach(row=>{
+    attendance[row.dataset.studentRow]=row.dataset.status||"present";
+  });
+
+  db.lessonRegisters=db.lessonRegisters||[];
+  const oldIndex=db.lessonRegisters.findIndex(x=>x.key===key);
+  const rec={
+    key,cls,date,period,
+    subject:item.subject||"",
+    teacher:item.teacher||"Remigiusz Kowalski",
+    room:item.room||"",
+    topic:lrTopic.value.trim(),
+    description:lrDescription.value.trim(),
+    homework:lrHomework.value.trim(),
+    attendance,
+    updatedAt:new Date().toISOString(),
+    updatedBy:currentUser?.name||""
+  };
+  if(oldIndex>=0)db.lessonRegisters[oldIndex]=rec;
+  else db.lessonRegisters.push(rec);
+
+  // synchronizacja z istniejącymi tematami i frekwencją
+  db.lessons=db.lessons||[];
+  const lessonIndex=db.lessons.findIndex(x=>x.cls===cls&&x.date===date&&String(x.lessonNo)===String(period));
+  const lessonObj={cls,subject:item.subject||"",topic:rec.topic,desc:rec.description+(rec.homework?`\nPraca domowa: ${rec.homework}`:""),lessonNo:String(period),date,held:"tak",realization:"zrealizowano"};
+  if(lessonIndex>=0)db.lessons[lessonIndex]=lessonObj; else db.lessons.push(lessonObj);
+
+  db.attendance=(db.attendance||[]).filter(a=>!(a.cls===cls&&a.lessonDate===date&&Number(a.period)===period));
+  Object.entries(attendance).forEach(([student,status])=>{
+    db.attendance.push({cls,subject:item.subject||"",student,status:attendanceStatusLabel(status),date:now(),lessonDate:date,period});
+  });
+
+  await save();
+  lessonRegisterModal.style.display="none";
+  renderAll();
+}
+
 </script>
 </body>
 </html>
