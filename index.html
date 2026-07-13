@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
+<!-- WERSJA 652: osobne oceny dla tych samych kodów w I i II semestrze -->
 <!-- WERSJA 651: te same kody dozwolone w różnych semestrach -->
 <!-- WERSJA 650: lista kodów kolumn filtrowana według semestru -->
 <!-- WERSJA 649: automatyczne odświeżanie ocen końcowych bez zmiany zakładki -->
@@ -1210,8 +1211,8 @@ window.saveColumnEdit=async function(){
   c.color=editColumnColor.value;
   if(oldCode!==newCode){
     db.students.forEach(s=>{
-      let oldKey="6F|"+c.subject+"|"+s.name+"|"+oldCode;
-      let newKey="6F|"+c.subject+"|"+s.name+"|"+newCode;
+      let oldKey=gradeKey(currentCls(),c.subject,s.name,oldCode,String(c.semester||"1"));
+      let newKey=gradeKey(currentCls(),c.subject,s.name,newCode,String(editColumnSemester.value||c.semester||"1"));
       if(db.grades[oldKey]){
         db.grades[newKey]=db.grades[oldKey];
         delete db.grades[oldKey];
@@ -1225,7 +1226,7 @@ window.saveColumnEdit=async function(){
 window.deleteColumn=async function(index){
   let c=db.columns[index]; if(!c)return;
   if(!confirm("Usunąć kod "+c.code+" i wszystkie oceny w tej kolumnie?"))return;
-  db.students.forEach(s=>delete db.grades["6F|"+c.subject+"|"+s.name+"|"+c.code]);
+  db.students.forEach(s=>delete db.grades[gradeKey(currentCls(),c.subject,s.name,c.code,String(c.semester||"1"))]);
   db.columns.splice(index,1); await save(); renderAll();
 }
 
@@ -1240,6 +1241,17 @@ window.deleteColumn=async function(index){
 
 
 /* ===== POPRAWNE LICZENIE ŚREDNIEJ — WERSJA 603 ===== */
+
+function gradeKey(cls,subject,student,code,sem){
+  const s=String(sem||"1");
+  // I semestr zachowuje stare klucze, żeby nie stracić dotychczasowych ocen.
+  if(s==="1") return `${cls}|${subject}|${student}|${code}`;
+  return `${cls}|${subject}|${student}|${code}|SEM${s}`;
+}
+function getGradeRecord(cls,subject,student,code,sem){
+  return (db.grades||{})[gradeKey(cls,subject,student,code,sem)];
+}
+
 function gradeNum(g){
   if(g === undefined || g === null) return null;
   g = String(g).trim().toLowerCase().replace(",", ".");
@@ -1287,7 +1299,7 @@ function avg(st, sem){
   (db.columns || [])
     .filter(c => c.subject === subject && String(c.semester || "1") === String(sem))
     .forEach(c => {
-      const key = "6F|" + subject + "|" + st + "|" + c.code;
+      const key = gradeKey(currentCls(), subject, st, c.code, sem);
       const x = (db.grades || {})[key];
 
       if(!x || !x.grade) return;
@@ -1307,7 +1319,7 @@ function avgYear(st){
   const subject=currentSubject();
   let sum=0, weightSum=0;
   (db.columns||[]).filter(c=>c.subject===subject).forEach(c=>{
-    const x=(db.grades||{})["6F|"+subject+"|"+st+"|"+c.code];
+    const x=getGradeRecord(currentCls(),subject,st,c.code,String(c.semester||"1"));
     if(!x||!x.grade)return;
     const value=gradeNum(x.grade);
     if(value===null)return;
@@ -1326,7 +1338,7 @@ function avgDetails(st, sem){
   (db.columns || [])
     .filter(c => c.subject === subject && String(c.semester || "1") === String(sem))
     .forEach(c => {
-      const key = "6F|" + subject + "|" + st + "|" + c.code;
+      const key = gradeKey(currentCls(), subject, st, c.code, sem);
       const x = (db.grades || {})[key];
 
       if(!x || !x.grade) return;
@@ -1490,7 +1502,7 @@ function renderGrades(){
   studs.forEach(s=>{
     out+=`<tr><td class="nr">${s.no||''}</td><td class="studentName">${s.name}</td>`;
     cols.forEach(c=>{
-      const key="6F|"+subject+"|"+s.name+"|"+c.code;
+      const key=gradeKey(currentCls(),subject,s.name,c.code,sem);
       const x=(db.grades||{})[key]||{}, grade=x.grade||"", cc=gradeColorClass(grade,c.code);
       const oldMark="";
       const dateMark="";
@@ -2481,8 +2493,9 @@ function studentGradesHistory(st){
   Object.entries(db.grades||{}).forEach(([key,g])=>{
     const parts=key.split("|");
     if(parts.length<4 || parts[2]!==st)return;
-    const col=(db.columns||[]).find(c=>c.subject===parts[1]&&c.code===parts[3]);
-    rows.push({cls:parts[0],subject:parts[1],code:parts[3],grade:g.grade||"",date:g.date||"",desc:g.desc||col?.desc||"",weight:col?.weight||1});
+    const sem=parts[4]&&String(parts[4]).startsWith("SEM")?String(parts[4]).replace("SEM",""):"1";
+    const col=(db.columns||[]).find(c=>c.subject===parts[1]&&c.code===parts[3]&&String(c.semester||"1")===sem);
+    rows.push({cls:parts[0],subject:parts[1],code:parts[3],semester:sem,grade:g.grade||"",date:g.date||"",desc:g.desc||col?.desc||"",weight:col?.weight||1});
   });
   return rows.sort((a,b)=>String(b.date).localeCompare(String(a.date)));
 }
@@ -2517,7 +2530,7 @@ function renderStudentFile(){
   const selectedSemester=selectedFileSemester();
   const grades=studentGradesHistory(st).filter(g=>{
     const col=(db.columns||[]).find(c=>c.subject===g.subject&&c.code===g.code);
-    return g.subject===selectedSubject && String(col?.semester||"1")===String(selectedSemester);
+    return g.subject===selectedSubject && String(g.semester||col?.semester||"1")===String(selectedSemester);
   });
   const notes=(db.notes||[]).filter(n=>n.student===st).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
   fileHistory.innerHTML=`<h3>Historia ocen — ${selectedSubject}, ${selectedSemester==="1"?"I semestr":"II semestr"}</h3>
@@ -2569,7 +2582,7 @@ window.printReport=function(){
 function gradeRowsForReport(st,cls,sem,subject){
   return studentGradesHistory(st).filter(g=>{
     const col=(db.columns||[]).find(c=>c.subject===g.subject&&c.code===g.code);
-    return g.cls===cls && g.subject===subject && String(col?.semester||"1")===String(sem);
+    return g.cls===cls && g.subject===subject && String(g.semester||col?.semester||"1")===String(sem);
   });
 }
 window.makeGradesReport=function(){
