@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
+<!-- WERSJA 651: te same kody dozwolone w różnych semestrach -->
 <!-- WERSJA 650: lista kodów kolumn filtrowana według semestru -->
 <!-- WERSJA 649: automatyczne odświeżanie ocen końcowych bez zmiany zakładki -->
 <!-- WERSJA 648: wybór ucznia, przedmiotu i semestru w ocenach końcowych -->
@@ -1134,7 +1135,11 @@ window.addColumn=async function(){
   if(false)return alert("Oceny bieżące są tylko dla aktualnej klasy 6F.");
   let code=colCode.value.trim(); if(!code)return alert("Wpisz kod.");
   let subject=currentSubject();
-  if(db.columns.some(c=>c.code===code&&c.subject===subject))return alert("Taki kod już istnieje dla tego przedmiotu.");
+  if((db.columns||[]).some(c=>
+    c.code===code &&
+    c.subject===subject &&
+    String(c.semester||"1")===String(activeGradeSemester||"1")
+  )) return alert("Taki kod już istnieje dla tego przedmiotu w wybranym semestrze.");
   db.columns.push({subject,code,desc:colDesc.value.trim(),weight:Number(colWeight.value),semester:String(activeGradeSemester||"1"),color:colColor.value});
   colCode.value=colDesc.value="";
   await save();renderAll();
@@ -1192,7 +1197,12 @@ window.saveColumnEdit=async function(){
   let oldCode=c.code;
   let newCode=editColumnCode.value.trim();
   if(!newCode)return alert("Kod nie może być pusty.");
-  if(db.columns.some((x,i)=>i!==index && x.subject===c.subject && x.code===newCode))return alert("Taki kod już istnieje.");
+  if((db.columns||[]).some((x,i)=>
+    i!==index &&
+    x.subject===c.subject &&
+    x.code===newCode &&
+    String(x.semester||"1")===String(editColumnSemester.value||c.semester||"1")
+  )) return alert("Taki kod już istnieje w tym semestrze.");
   c.code=newCode;
   c.desc=editColumnDesc.value.trim();
   c.weight=Number(editColumnWeight.value||1);
