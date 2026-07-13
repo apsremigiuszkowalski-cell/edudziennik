@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
+<!-- WERSJA 648: wybór ucznia, przedmiotu i semestru w ocenach końcowych -->
+<!-- WERSJA 647: wybór ucznia, przedmiotu i semestru -->
+<!-- WERSJA 646: całkowicie usunięty moduł frekwencji -->
 <!-- WERSJA 645: kartoteka ucznia, zestawienia i wydruki -->
 <!-- WERSJA 642: zastępstwa, dni wolne i aplikacja PWA -->
 <!-- WERSJA 638: kolory ocen z kodów kolumn działają -->\n<!-- WERSJA 637: informacje o edycji oceny i edycja daty -->
@@ -257,7 +260,6 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
   <div class="tool" onclick="show('oceny')"><div class="ico"></div><div>Oceny 6F</div></div>
   <div class="tool" onclick="show('koncowe')"><div class="ico green"></div><div>Końcowe</div></div>
   <div class="tool" onclick="show('opis')"><div class="ico green"></div><div>Opis lekcji</div></div>
-  <div class="tool" onclick="show('frekwencja')"><div class="ico blue"></div><div>Frekwencja</div></div>
   <div class="tool" onclick="show('uwagi')"><div class="ico red"></div><div>Uwagi</div></div>
   <div class="tool" onclick="show('poczta')"><div class="ico blue"></div><div>Poczta</div></div>
   <div class="tool" onclick="show('kalendarz')"><div class="ico green"></div><div>Kalendarz</div></div>
@@ -336,14 +338,19 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
     </div>
 
     <div id="koncowe" class="page hidden">
-      <div class="card"><h2>Wszystkie przedmioty — oceny śródroczne i roczne</h2><div class="body">
-        <p class="small">Możesz wpisać np. 6, 5, bdb, cel albo zwolniony.</p><table id="finalsTable"></table>
+      <div class="card"><h2>Oceny końcowe</h2><div class="body">
+        <div class="grid">
+          <select id="finalStudent" onchange="renderFinals()"></select>
+          <select id="finalSubject" onchange="renderFinals()"></select>
+          <select id="finalSemester" onchange="renderFinals()">
+            <option value="1">I semestr</option>
+            <option value="2">II semestr</option>
+          </select>
+          <button onclick="renderFinals()">Pokaż</button>
+        </div>
+        <p class="small">Wybierz ucznia, przedmiot oraz semestr. Proponowaną i wystawioną ocenę może zmieniać tylko nauczyciel.</p>
+        <table id="finalsTable"></table>
       </div></div>
-    </div>
-
-    <div id="frekwencja" class="page hidden">
-      <div class="card teacherOnly"><h2>Wpisz frekwencję</h2><div class="body"><div class="grid"><select id="attStudent"></select><select id="attStatus"><option>obecny</option><option>nieobecny</option><option>spóźnienie</option><option>zwolniony</option><option>usprawiedliwiony</option></select><button class="primary" onclick="addAttendance()">Zapisz</button></div></div></div>
-      <div class="card"><h2>Frekwencja</h2><div class="body"><table id="attendanceTable"></table></div></div>
     </div>
 
     <div id="opis" class="page hidden">
@@ -460,13 +467,16 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
       <div class="card"><h2>Kartoteka ucznia</h2><div class="body">
         <div class="grid">
           <select id="fileStudent" onchange="selectedStudent=this.value;renderStudentFile()"></select>
+          <select id="fileSubject" onchange="renderStudentFile()"></select>
+          <select id="fileSemester" onchange="renderStudentFile()">
+            <option value="1">I semestr</option>
+            <option value="2">II semestr</option>
+          </select>
           <button onclick="renderStudentFile()">Odśwież kartotekę</button>
         </div>
         <div class="studentFileTabs">
           <button class="active" onclick="showStudentFileTab('basic',this)">Dane podstawowe</button>
           <button onclick="showStudentFileTab('parents',this)">Dane rodziców</button>
-          <button onclick="showStudentFileTab('attendance',this)">Historia frekwencji</button>
-          <button onclick="showStudentFileTab('absences',this)">Zwolnienia i nieobecności</button>
           <button onclick="showStudentFileTab('achievements',this)">Osiągnięcia i konkursy</button>
           <button onclick="showStudentFileTab('needs',this)">Specjalne potrzeby</button>
           <button onclick="showStudentFileTab('history',this)">Historia ocen i uwag</button>
@@ -474,8 +484,6 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
 
         <div id="file-basic" class="studentFileSection active"><div id="fileBasic"></div></div>
         <div id="file-parents" class="studentFileSection"><div id="fileParents"></div></div>
-        <div id="file-attendance" class="studentFileSection"><div id="fileAttendance"></div></div>
-        <div id="file-absences" class="studentFileSection"><div id="fileAbsences"></div></div>
 
         <div id="file-achievements" class="studentFileSection">
           <div class="teacherOnly">
@@ -505,13 +513,16 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
       <div class="card teacherOnly"><h2>Zestawienia i wydruki</h2><div class="body">
         <div class="grid">
           <select id="reportStudent"></select>
+          <select id="reportSubject"></select>
+          <select id="reportSemester">
+            <option value="1">I semestr</option>
+            <option value="2">II semestr</option>
+          </select>
           <select id="reportClass"><option>6F</option><option>5F</option><option>4F</option></select>
-          <select id="reportSemester"><option value="1">I semestr</option><option value="2">II semestr</option><option value="all">Cały rok</option></select>
         </div>
         <div class="reportToolbar">
           <button class="primary" onclick="makeGradesReport()">Eksport ocen do PDF</button>
           <button onclick="makeParentMeetingCard()">Kartka na wywiadówkę</button>
-          <button onclick="makeAttendanceStats()">Statystyki frekwencji</button>
           <button onclick="makeHomeroomReport()">Raport wychowawcy</button>
           <button onclick="makeWholeJournal()">Wydruk całego dziennika klasy</button>
         </div>
@@ -540,7 +551,6 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
       <div class="menuItem" onclick="show('oceny')">Oceny bieżące 6F</div>
       <div class="menuItem" onclick="show('koncowe')">Oceny śródroczne i roczne</div>
       <div class="menuItem" onclick="show('opis')">Opis lekcji</div>
-      <div class="menuItem" onclick="show('frekwencja')">Frekwencja</div>
       <div class="menuItem" onclick="show('uwagi')">Uwagi</div>
       <div class="menuItem" onclick="show('poczta')">Skrzynka pocztowa</div>
       <div class="menuItem" onclick="show('kalendarz')">Kalendarz sprawdzianów</div>
@@ -944,7 +954,7 @@ window.toggleClassFolder=function(c){
   renderTree();
 }
 function renderSelects(){
-  [attStudent,noteStudent].forEach(sel=>sel.innerHTML=db.students.map(s=>`<option>${s.name}</option>`).join(""));
+  [noteStudent].forEach(sel=>sel.innerHTML=db.students.map(s=>`<option>${s.name}</option>`).join(""));
   ["fileStudent","reportStudent"].forEach(id=>{
     const sel=document.getElementById(id);
     if(sel){
@@ -952,6 +962,20 @@ function renderSelects(){
       sel.value=selectedStudent;
     }
   });
+  ["fileSubject","reportSubject","finalSubject"].forEach(id=>{
+    const sel=document.getElementById(id);
+    if(sel){
+      const oldValue=sel.value;
+      sel.innerHTML=subjects.map(s=>`<option>${s}</option>`).join("");
+      sel.value=oldValue || currentSubject();
+    }
+  });
+  const finalStudentSel=document.getElementById("finalStudent");
+  if(finalStudentSel){
+    const oldValue=finalStudentSel.value;
+    finalStudentSel.innerHTML=db.students.map(s=>`<option>${s.name}</option>`).join("");
+    finalStudentSel.value=oldValue || selectedStudent;
+  }
 }
 
 window.addStudent=async function(){
@@ -1450,10 +1474,48 @@ function renderGrades(){
 }
 
 function renderFinals(){
-  let cls=currentCls();
-  let studs=(roleNow==="student"||roleNow==="parent")?db.students.filter(s=>s.name===selectedStudent):db.students;
-  let html="<tr><th>Folder klasy</th><th>Uczeń</th><th>Przedmiot</th><th>Ocena śródroczna</th><th>Ocena roczna</th></tr>";
-  studs.forEach(s=>subjects.forEach(sub=>html+=`<tr><td>${cls}</td><td class="name">${s.name}</td><td>${sub}</td><td>${finalCell(cls,sub,s.name,"srodroczna")}</td><td>${finalCell(cls,sub,s.name,"roczna")}</td></tr>`));
+  const cls=currentCls();
+  const studentSelect=document.getElementById("finalStudent");
+  const subjectSelect=document.getElementById("finalSubject");
+  const semesterSelect=document.getElementById("finalSemester");
+
+  const st=(roleNow==="teacher")
+    ? (studentSelect?.value || selectedStudent)
+    : selectedStudent;
+
+  const subject=subjectSelect?.value || currentSubject();
+  const sem=semesterSelect?.value || "1";
+
+  if(roleNow!=="teacher" && studentSelect){
+    studentSelect.style.display="none";
+  }
+
+  let html="";
+  if(sem==="1"){
+    html="<tr><th>Klasa</th><th>Uczeń</th><th>Przedmiot</th><th>Semestr</th><th>Średnia z okresu</th><th>Proponowana</th><th>Wystawienie</th></tr>";
+    html+=`<tr>
+      <td>${cls}</td>
+      <td class="name">${st}</td>
+      <td>${subject}</td>
+      <td>I semestr</td>
+      <td><span class="avgLink" onclick="showAvgDetails('${st}',1)">${avg(st,1)}</span></td>
+      <td>${finalCell(cls,subject,st,"prop_srodroczna")}</td>
+      <td>${finalCell(cls,subject,st,"srodroczna")}</td>
+    </tr>`;
+  }else{
+    html="<tr><th>Klasa</th><th>Uczeń</th><th>Przedmiot</th><th>Semestr</th><th>Średnia z II okresu</th><th>Średnia roczna</th><th>Proponowana</th><th>Wystawienie</th></tr>";
+    html+=`<tr>
+      <td>${cls}</td>
+      <td class="name">${st}</td>
+      <td>${subject}</td>
+      <td>II semestr</td>
+      <td><span class="avgLink" onclick="showAvgDetails('${st}',2)">${avg(st,2)}</span></td>
+      <td>${avgYear(st)}</td>
+      <td>${finalCell(cls,subject,st,"prop_roczna")}</td>
+      <td>${finalCell(cls,subject,st,"roczna")}</td>
+    </tr>`;
+  }
+
   finalsTable.innerHTML=html;
 }
 
@@ -1817,7 +1879,7 @@ window.deleteMessage=async function(i){
 function renderAll(){
   try{
     txt('currentClass',currentCls()); txt('currentLesson',currentSubject()); txt('currentStudentText',selectedStudent||"—");
-    renderTree();renderSelects();renderStudents();renderAccounts();renderColumns();renderGrades();renderFinals();renderAttendance();renderLessons();renderNotes();try{renderMailbox();}catch(e){console.error(e);}renderCertSelects();try{renderCalendar();renderUpcomingEvents();renderUpcomingLessons();renderUpcomingLessons();renderPlan();renderSubstitutions();renderDaysOff();}catch(e){}
+    renderTree();renderSelects();renderStudents();renderAccounts();renderColumns();renderGrades();renderFinals();renderLessons();renderNotes();try{renderMailbox();}catch(e){console.error(e);}renderCertSelects();try{renderCalendar();renderUpcomingEvents();renderUpcomingLessons();renderUpcomingLessons();renderPlan();renderSubstitutions();renderDaysOff();}catch(e){}
     document.querySelectorAll(".teacherOnly").forEach(e=>e.style.display=roleNow==="teacher"?"":"none");
   if(document.getElementById("fileStudent")) fileStudent.style.display=roleNow==="teacher"?"":"none";
     const clsSel=document.getElementById("classSelect"); if(clsSel) clsSel.style.display=roleNow==="teacher"?"":"none"; document.querySelectorAll(".parentNoAccess").forEach(e=>e.style.display=(roleNow==="parent"||roleNow==="student")?"none":"");
@@ -2356,6 +2418,12 @@ function selectedFileStudent(){
   if(roleNow==="teacher") return document.getElementById("fileStudent")?.value || selectedStudent;
   return selectedStudent;
 }
+function selectedFileSubject(){
+  return document.getElementById("fileSubject")?.value || currentSubject();
+}
+function selectedFileSemester(){
+  return document.getElementById("fileSemester")?.value || "1";
+}
 function studentGradesHistory(st){
   const rows=[];
   Object.entries(db.grades||{}).forEach(([key,g])=>{
@@ -2366,21 +2434,8 @@ function studentGradesHistory(st){
   });
   return rows.sort((a,b)=>String(b.date).localeCompare(String(a.date)));
 }
-function studentAttendanceHistory(st){
-  return (db.attendance||[]).filter(a=>a.student===st).sort((a,b)=>String(b.lessonDate||b.date).localeCompare(String(a.lessonDate||a.date)));
-}
-function attendanceSummary(st){
-  const rows=studentAttendanceHistory(st);
-  const count=(terms)=>rows.filter(a=>terms.some(t=>String(a.status||"").toLowerCase().includes(t))).length;
-  const present=count(["obecny"]);
-  const absent=count(["nieobecny"]);
-  const late=count(["spóź"]);
-  const excused=count(["uspraw"]);
-  const released=count(["zwoln"]);
-  const total=rows.length;
-  const pct=total?((present+excused+released)/total*100):0;
-  return {rows,present,absent,late,excused,released,total,pct};
-}
+
+
 function renderStudentFile(){
   const st=selectedFileStudent();
   const s=(db.students||[]).find(x=>x.name===st);
@@ -2398,21 +2453,6 @@ function renderStudentFile(){
     <div class="label">Kontakt zapisany</div><div class="value">${s.parentEmail?"tak":"nie"}</div>
   </div>`;
 
-  const sum=attendanceSummary(st);
-  fileAttendance.innerHTML=`<div>
-    <div class="statCard"><div class="statValue">${sum.total}</div>Wpisów</div>
-    <div class="statCard"><div class="statValue">${sum.present}</div>Obecności</div>
-    <div class="statCard"><div class="statValue">${sum.absent}</div>Nieobecności</div>
-    <div class="statCard"><div class="statValue">${sum.late}</div>Spóźnienia</div>
-    <div class="statCard"><div class="statValue">${sum.pct.toFixed(1)}%</div>Frekwencja</div>
-  </div>
-  <table><tr><th>Data</th><th>Przedmiot</th><th>Status</th><th>Lekcja</th></tr>
-  ${sum.rows.map(a=>`<tr><td>${a.lessonDate||a.date||"—"}</td><td>${a.subject||"—"}</td><td>${a.status||"—"}</td><td>${a.period||"—"}</td></tr>`).join("")}</table>`;
-
-  const abs=sum.rows.filter(a=>/nieobec|zwoln|uspraw/i.test(String(a.status||"")));
-  fileAbsences.innerHTML=`<table><tr><th>Data</th><th>Przedmiot</th><th>Status</th><th>Lekcja</th></tr>
-  ${abs.map(a=>`<tr><td>${a.lessonDate||a.date||"—"}</td><td>${a.subject||"—"}</td><td>${a.status||"—"}</td><td>${a.period||"—"}</td></tr>`).join("")||"<tr><td colspan='4'>Brak wpisów.</td></tr>"}</table>`;
-
   const ach=(db.achievements||[]).filter(a=>a.student===st);
   fileAchievements.innerHTML=`<table><tr><th>Data</th><th>Osiągnięcie / konkurs</th><th>Wynik</th><th class="teacherOnly">Akcja</th></tr>
   ${ach.map(a=>{const i=db.achievements.indexOf(a);return `<tr><td>${a.date||"—"}</td><td class="achievementPositive">${a.name}</td><td>${a.place||"—"}</td><td class="teacherOnly"><button class="danger" onclick="deleteAchievement(${i})">Usuń</button></td></tr>`}).join("")||"<tr><td colspan='4'>Brak osiągnięć.</td></tr>"}</table>`;
@@ -2421,9 +2461,14 @@ function renderStudentFile(){
   if(document.getElementById("specialNeedsText"))specialNeedsText.value=(db.specialNeeds||{})[st]||"";
   fileNeeds.innerHTML=`<p><span class="needBadge">Informacja poufna</span></p><div class="status">${needs}</div>`;
 
-  const grades=studentGradesHistory(st);
+  const selectedSubject=selectedFileSubject();
+  const selectedSemester=selectedFileSemester();
+  const grades=studentGradesHistory(st).filter(g=>{
+    const col=(db.columns||[]).find(c=>c.subject===g.subject&&c.code===g.code);
+    return g.subject===selectedSubject && String(col?.semester||"1")===String(selectedSemester);
+  });
   const notes=(db.notes||[]).filter(n=>n.student===st).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
-  fileHistory.innerHTML=`<h3>Historia ocen</h3>
+  fileHistory.innerHTML=`<h3>Historia ocen — ${selectedSubject}, ${selectedSemester==="1"?"I semestr":"II semestr"}</h3>
     <table><tr><th>Data</th><th>Klasa</th><th>Przedmiot</th><th>Kod</th><th>Ocena</th><th>Waga</th><th>Opis</th></tr>
     ${grades.map(g=>`<tr><td>${g.date||"—"}</td><td>${g.cls}</td><td>${g.subject}</td><td>${g.code}</td><td><b>${g.grade}</b></td><td>${g.weight}</td><td>${g.desc||"—"}</td></tr>`).join("")||"<tr><td colspan='7'>Brak ocen.</td></tr>"}</table>
     <h3>Historia uwag</h3>
@@ -2455,6 +2500,7 @@ window.saveSpecialNeeds=async function(){
 
 /* ===== ZESTAWIENIA I WYDRUKI ===== */
 function reportStudentName(){return document.getElementById("reportStudent")?.value||selectedStudent}
+function reportSubjectName(){return document.getElementById("reportSubject")?.value||currentSubject()}
 function reportClassName(){return document.getElementById("reportClass")?.value||currentCls()}
 function reportSemesterValue(){return document.getElementById("reportSemester")?.value||"all"}
 function setReport(html,title){
@@ -2468,43 +2514,36 @@ window.printReport=function(){
   window.print();
   setTimeout(()=>{document.body.classList.remove("print-report");printArea.style.display="none"},300);
 }
-function gradeRowsForReport(st,cls,sem){
-  return studentGradesHistory(st).filter(g=>g.cls===cls && (sem==="all" || String((db.columns||[]).find(c=>c.subject===g.subject&&c.code===g.code)?.semester||"1")===String(sem)));
+function gradeRowsForReport(st,cls,sem,subject){
+  return studentGradesHistory(st).filter(g=>{
+    const col=(db.columns||[]).find(c=>c.subject===g.subject&&c.code===g.code);
+    return g.cls===cls && g.subject===subject && String(col?.semester||"1")===String(sem);
+  });
 }
 window.makeGradesReport=function(){
-  const st=reportStudentName(),cls=reportClassName(),sem=reportSemesterValue();
-  const rows=gradeRowsForReport(st,cls,sem);
+  const st=reportStudentName(),cls=reportClassName(),sem=reportSemesterValue(),subject=reportSubjectName();
+  const rows=gradeRowsForReport(st,cls,sem,subject);
   const subjects=[...new Set(rows.map(r=>r.subject))];
-  const html=`<div class="reportPage"><h1>Zestawienie ocen</h1><p><b>Uczeń:</b> ${st}<br><b>Klasa:</b> ${cls}<br><b>Okres:</b> ${sem==="all"?"cały rok":sem+" semestr"}</p>
+  const html=`<div class="reportPage"><h1>Zestawienie ocen</h1><p><b>Uczeń:</b> ${st}<br><b>Klasa:</b> ${cls}<br><b>Przedmiot:</b> ${subject}<br><b>Okres:</b> ${sem==="1"?"I semestr":"II semestr"}</p>
     ${subjects.map(sub=>`<h3>${sub}</h3><table><tr><th>Data</th><th>Kod</th><th>Ocena</th><th>Waga</th><th>Opis</th></tr>${rows.filter(r=>r.subject===sub).map(r=>`<tr><td>${r.date||"—"}</td><td>${r.code}</td><td>${r.grade}</td><td>${r.weight}</td><td>${r.desc||"—"}</td></tr>`).join("")}</table>`).join("")}
     <p class="noPrint"><button class="primary" onclick="printReport()">Drukuj / zapisz jako PDF</button></p></div>`;
   setReport(html,"Oceny - "+st);
 }
 window.makeParentMeetingCard=function(){
-  const st=reportStudentName(),cls=reportClassName();
-  const grades=gradeRowsForReport(st,cls,"all");
-  const sum=attendanceSummary(st);
+  const st=reportStudentName(),cls=reportClassName(),sem=reportSemesterValue(),subject=reportSubjectName();
+  const grades=gradeRowsForReport(st,cls,sem,subject);
   const notes=(db.notes||[]).filter(n=>n.student===st);
   const html=`<div class="reportPage"><h1>Kartka na wywiadówkę</h1><p><b>Uczeń:</b> ${st}<br><b>Klasa:</b> ${cls}</p>
   <h2>Oceny</h2><table><tr><th>Przedmiot</th><th>Oceny</th></tr>${[...new Set(grades.map(g=>g.subject))].map(sub=>`<tr><td>${sub}</td><td>${grades.filter(g=>g.subject===sub).map(g=>g.grade).join(", ")||"—"}</td></tr>`).join("")}</table>
-  <h2>Frekwencja</h2><p>Obecności: ${sum.present}, nieobecności: ${sum.absent}, spóźnienia: ${sum.late}, frekwencja: ${sum.pct.toFixed(1)}%</p>
   <h2>Uwagi</h2><ul>${notes.map(n=>`<li>${n.date||""} — ${n.type||""}: ${n.text||""}</li>`).join("")||"<li>Brak uwag</li>"}</ul>
   <p class="noPrint"><button class="primary" onclick="printReport()">Drukuj / zapisz jako PDF</button></p></div>`;
   setReport(html,"Wywiadówka - "+st);
 }
-window.makeAttendanceStats=function(){
-  const cls=reportClassName();
-  const rows=(db.students||[]).map(s=>({name:s.name,...attendanceSummary(s.name)}));
-  const html=`<div class="reportPage"><h1>Statystyki frekwencji klasy ${cls}</h1>
-  <table><tr><th>Uczeń</th><th>Wpisów</th><th>Obecności</th><th>Nieobecności</th><th>Spóźnienia</th><th>Usprawiedliwione</th><th>Zwolnienia</th><th>Frekwencja</th></tr>
-  ${rows.map(r=>`<tr><td>${r.name}</td><td>${r.total}</td><td>${r.present}</td><td>${r.absent}</td><td>${r.late}</td><td>${r.excused}</td><td>${r.released}</td><td>${r.pct.toFixed(1)}%</td></tr>`).join("")}</table>
-  <p class="noPrint"><button class="primary" onclick="printReport()">Drukuj / zapisz jako PDF</button></p></div>`;
-  setReport(html,"Frekwencja - "+cls);
-}
+
 window.makeHomeroomReport=function(){
   const cls=reportClassName();
   const html=`<div class="reportPage"><h1>Raport wychowawcy — ${cls}</h1>
-  ${(db.students||[]).map(s=>{const a=attendanceSummary(s.name),g=studentGradesHistory(s.name).filter(x=>x.cls===cls),n=(db.notes||[]).filter(x=>x.student===s.name);return `<h2>${s.name}</h2><p>Ocen: ${g.length}, uwag: ${n.length}, frekwencja: ${a.pct.toFixed(1)}%, nieobecności: ${a.absent}, spóźnienia: ${a.late}</p>`}).join("")}
+  ${(db.students||[]).map(s=>{g=studentGradesHistory(s.name).filter(x=>x.cls===cls),n=(db.notes||[]).filter(x=>x.student===s.name);return `<h2>${s.name}</h2><p>Ocen: ${g.length}, uwag: ${n.length}, frekwencja: ${a.pct.toFixed(1)}%, nieobecności: ${a.absent}, spóźnienia: ${a.late}</p>`}).join("")}
   <p class="noPrint"><button class="primary" onclick="printReport()">Drukuj / zapisz jako PDF</button></p></div>`;
   setReport(html,"Raport wychowawcy - "+cls);
 }
@@ -2514,7 +2553,6 @@ window.makeWholeJournal=function(){
   const html=`<div class="reportPage"><h1>Dziennik klasy ${cls}</h1>
   <h2>Lista uczniów</h2><table><tr><th>Nr</th><th>Uczeń</th><th>E-mail</th><th>Rodzic</th></tr>${(db.students||[]).map(s=>`<tr><td>${s.no}</td><td>${s.name}</td><td>${s.email||"—"}</td><td>${s.parentEmail||"—"}</td></tr>`).join("")}</table>
   <h2>Tematy lekcji</h2><table><tr><th>Data</th><th>Nr</th><th>Przedmiot</th><th>Temat</th><th>Realizacja</th></tr>${lessons.map(l=>`<tr><td>${l.date||"—"}</td><td>${l.lessonNo||"—"}</td><td>${l.subject||"—"}</td><td>${l.topic||"—"}</td><td>${l.realization||"—"}</td></tr>`).join("")}</table>
-  <h2>Frekwencja</h2>${(db.students||[]).map(s=>{const a=attendanceSummary(s.name);return `<p>${s.name}: ${a.pct.toFixed(1)}% — nieobecności ${a.absent}, spóźnienia ${a.late}</p>`}).join("")}
   <h2>Uwagi</h2><table><tr><th>Data</th><th>Uczeń</th><th>Typ</th><th>Treść</th></tr>${(db.notes||[]).map(n=>`<tr><td>${n.date||"—"}</td><td>${n.student||"—"}</td><td>${n.type||"—"}</td><td>${n.text||"—"}</td></tr>`).join("")}</table>
   <p class="noPrint"><button class="primary" onclick="printReport()">Drukuj / zapisz jako PDF</button></p></div>`;
   setReport(html,"Dziennik klasy - "+cls);
