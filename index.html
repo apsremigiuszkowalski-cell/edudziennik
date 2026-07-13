@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
+<!-- WERSJA 649: automatyczne odświeżanie ocen końcowych bez zmiany zakładki -->
 <!-- WERSJA 648: wybór ucznia, przedmiotu i semestru w ocenach końcowych -->
 <!-- WERSJA 647: wybór ucznia, przedmiotu i semestru -->
 <!-- WERSJA 646: całkowicie usunięty moduł frekwencji -->
@@ -340,9 +341,9 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
     <div id="koncowe" class="page hidden">
       <div class="card"><h2>Oceny końcowe</h2><div class="body">
         <div class="grid">
-          <select id="finalStudent" onchange="renderFinals()"></select>
-          <select id="finalSubject" onchange="renderFinals()"></select>
-          <select id="finalSemester" onchange="renderFinals()">
+          <select id="finalStudent" onchange="setFinalFilter()"></select>
+          <select id="finalSubject" onchange="setFinalFilter()"></select>
+          <select id="finalSemester" onchange="setFinalFilter()">
             <option value="1">I semestr</option>
             <option value="2">II semestr</option>
           </select>
@@ -727,6 +728,9 @@ let activeGradeSemester="1";
 let calendarMonth=new Date();
 let columnsCollapsed=true;
 let collapsedClasses={"4F":true,"5F":true,"6F":false};
+let finalSelectedStudent="";
+let finalSelectedSubject="";
+let finalSelectedSemester="1";
 
 const $ = (id) => document.getElementById(id);
 function showEl(id, display="block"){ const el=$(id); if(el) el.style.display=display; }
@@ -922,7 +926,7 @@ onAuthStateChanged(auth, async (user)=>{
 
 window.show=function(id){if((roleNow==='parent'||roleNow==='student') && id==='swiadectwo'){alert('Brak dostępu do świadectw.');return;}document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));const page=$(id); if(page) page.classList.remove("hidden");renderAll()}
 window.chooseClass=function(c){classSelect.value=c; show("koncowe"); renderAll()}
-window.chooseStudent=function(n){if(roleNow==="teacher"){selectedStudent=n;renderAll()}}
+window.chooseStudent=function(n){if(roleNow==="teacher"){selectedStudent=n;if(!finalSelectedStudent)finalSelectedStudent=n;renderAll()}}
 window.setGradeSemester=function(sem){
   activeGradeSemester=String(sem);
   const b1=document.getElementById("semBtn1");
@@ -962,7 +966,7 @@ function renderSelects(){
       sel.value=selectedStudent;
     }
   });
-  ["fileSubject","reportSubject","finalSubject"].forEach(id=>{
+  ["fileSubject","reportSubject"].forEach(id=>{
     const sel=document.getElementById(id);
     if(sel){
       const oldValue=sel.value;
@@ -972,9 +976,23 @@ function renderSelects(){
   });
   const finalStudentSel=document.getElementById("finalStudent");
   if(finalStudentSel){
-    const oldValue=finalStudentSel.value;
+    const keep=finalSelectedStudent || finalStudentSel.value || selectedStudent;
     finalStudentSel.innerHTML=db.students.map(s=>`<option>${s.name}</option>`).join("");
-    finalStudentSel.value=oldValue || selectedStudent;
+    finalStudentSel.value=keep;
+    finalSelectedStudent=finalStudentSel.value || selectedStudent;
+  }
+
+  const finalSubjectSel=document.getElementById("finalSubject");
+  if(finalSubjectSel){
+    const keep=finalSelectedSubject || finalSubjectSel.value || currentSubject();
+    finalSubjectSel.innerHTML=subjects.map(s=>`<option>${s}</option>`).join("");
+    finalSubjectSel.value=keep;
+    finalSelectedSubject=finalSubjectSel.value || currentSubject();
+  }
+
+  const finalSemesterSel=document.getElementById("finalSemester");
+  if(finalSemesterSel){
+    finalSemesterSel.value=finalSelectedSemester || "1";
   }
 }
 
@@ -1473,6 +1491,18 @@ function renderGrades(){
   table.outerHTML=out;
 }
 
+window.setFinalFilter=function(){
+  const studentEl=document.getElementById("finalStudent");
+  const subjectEl=document.getElementById("finalSubject");
+  const semesterEl=document.getElementById("finalSemester");
+
+  if(studentEl) finalSelectedStudent=studentEl.value;
+  if(subjectEl) finalSelectedSubject=subjectEl.value;
+  if(semesterEl) finalSelectedSemester=semesterEl.value;
+
+  renderFinals();
+}
+
 function renderFinals(){
   const cls=currentCls();
   const studentSelect=document.getElementById("finalStudent");
@@ -1480,11 +1510,15 @@ function renderFinals(){
   const semesterSelect=document.getElementById("finalSemester");
 
   const st=(roleNow==="teacher")
-    ? (studentSelect?.value || selectedStudent)
+    ? (finalSelectedStudent || studentSelect?.value || selectedStudent)
     : selectedStudent;
 
-  const subject=subjectSelect?.value || currentSubject();
-  const sem=semesterSelect?.value || "1";
+  const subject=finalSelectedSubject || subjectSelect?.value || currentSubject();
+  const sem=finalSelectedSemester || semesterSelect?.value || "1";
+
+  if(studentSelect && roleNow==="teacher" && studentSelect.value!==st) studentSelect.value=st;
+  if(subjectSelect && subjectSelect.value!==subject) subjectSelect.value=subject;
+  if(semesterSelect && semesterSelect.value!==sem) semesterSelect.value=sem;
 
   if(roleNow!=="teacher" && studentSelect){
     studentSelect.style.display="none";
