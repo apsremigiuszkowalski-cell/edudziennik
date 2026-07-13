@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
+<!-- WERSJA 650: lista kodów kolumn filtrowana według semestru -->
 <!-- WERSJA 649: automatyczne odświeżanie ocen końcowych bez zmiany zakładki -->
 <!-- WERSJA 648: wybór ucznia, przedmiotu i semestru w ocenach końcowych -->
 <!-- WERSJA 647: wybór ucznia, przedmiotu i semestru -->
@@ -316,14 +317,14 @@ td{border:1px solid #d7dde5;padding:7px;text-align:center}td.name{text-align:lef
       </div></div>
 
       <div class="card teacherOnly" style="margin-top:25px;">
-        <h2 style="cursor:pointer" onclick="toggleColumnsPanel()">Kody kolumn <span id="columnsToggleIcon">▶</span></h2>
+        <h2 style="cursor:pointer" onclick="toggleColumnsPanel()">Kody kolumn — <span id="columnsSemesterLabel">I semestr</span> <span id="columnsToggleIcon">▶</span></h2>
         <div class="body" id="columnsPanelBody" style="display:none">
           <table id="columnsTable"></table>
         </div>
       </div>
 
       <div class="card teacherOnly" style="margin-top:20px;"><h2>Dodaj kolumnę ocen bieżących 6F</h2><div class="body">
-        <div class="grid"><input id="colCode" placeholder="Kod, np. s1"><input id="colDesc" placeholder="Opis"><select id="colWeight"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select><select id="colSemester"><option value="1">Śródroczne</option><option value="2">Drugie półrocze</option></select></div>
+        <div class="grid"><input id="colCode" placeholder="Kod, np. s1"><input id="colDesc" placeholder="Opis"><select id="colWeight"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select><input id="colSemester" type="hidden" value="1"></div>
         <div class="grid">
 <label>Kolor
 <select id="colColor">
@@ -935,6 +936,7 @@ window.setGradeSemester=function(sem){
     b1.className=activeGradeSemester==="1"?"primary":"";
     b2.className=activeGradeSemester==="2"?"primary":"";
   }
+  if(document.getElementById("colSemester")) colSemester.value=activeGradeSemester;
   renderAll();
 }
 
@@ -1133,7 +1135,7 @@ window.addColumn=async function(){
   let code=colCode.value.trim(); if(!code)return alert("Wpisz kod.");
   let subject=currentSubject();
   if(db.columns.some(c=>c.code===code&&c.subject===subject))return alert("Taki kod już istnieje dla tego przedmiotu.");
-  db.columns.push({subject,code,desc:colDesc.value.trim(),weight:Number(colWeight.value),semester:(activeGradeSemester||colSemester.value),color:colColor.value});
+  db.columns.push({subject,code,desc:colDesc.value.trim(),weight:Number(colWeight.value),semester:String(activeGradeSemester||"1"),color:colColor.value});
   colCode.value=colDesc.value="";
   await save();renderAll();
 }
@@ -1151,10 +1153,16 @@ function updateColumnsPanelState(){
 function renderColumns(){
   updateColumnsPanelState();
 
+  const label=document.getElementById("columnsSemesterLabel");
+  if(label) label.innerText=activeGradeSemester==="1"?"I semestr":"II semestr";
+
   let subject=currentSubject();
-  let cols=db.columns.filter(c=>c.subject===subject);
+  let cols=(db.columns||[]).filter(c=>
+    c.subject===subject &&
+    String(c.semester||"1")===String(activeGradeSemester)
+  );
   columnsTable.innerHTML="<tr><th>Kod</th><th>Przedmiot</th><th>Opis</th><th>Waga</th><th>Okres</th><th>Kolor</th><th>Akcja</th></tr>";
-  if(cols.length===0){columnsTable.innerHTML+="<tr><td colspan='7'>Brak kodów dla tego przedmiotu.</td></tr>";return}
+  if(cols.length===0){columnsTable.innerHTML+="<tr><td colspan='7'>Brak kodów dla tego przedmiotu w wybranym semestrze.</td></tr>";return}
   cols.forEach(c=>{
     let realIndex=db.columns.findIndex(x=>x.subject===c.subject&&x.code===c.code);
     columnsTable.innerHTML+=`<tr>
